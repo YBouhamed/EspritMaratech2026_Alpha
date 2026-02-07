@@ -1,0 +1,142 @@
+{
+  "version": "1.0",
+  "skeleton_standard": "humanoid_mixamo",
+  "total_animations": 20,
+  "last_updated": "2026-02-07",
+  "animations": {
+    "medecin": {
+      "file": "medical/medecin.fbx",
+      "format": "fbx",
+      "duration": 2.5,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["medical", "professional"],
+      "transitions": {
+        "in": 0.3,
+        "out": 0.3
+      },
+      "metadata": {
+        "hand_shape": "pointing",
+        "movement": "circular",
+        "location": "chest",
+        "description": "Sign for 'doctor' - circular motion near chest"
+      }
+    },
+    "infirmier": {
+      "file": "medical/infirmier.fbx",
+      "format": "fbx",
+      "duration": 2.3,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["medical", "professional"],
+      "transitions": {
+        "in": 0.3,
+        "out": 0.3
+      },
+      "metadata": {
+        "hand_shape": "flat",
+        "movement": "cross",
+        "location": "chest",
+        "description": "Sign for 'nurse' - crossed hands on chest"
+      }
+    },
+    "coeur": {
+      "file": "anatomy/coeur.fbx",
+      "format": "fbx",
+      "duration": 2.0,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["anatomy", "organ"],
+      "transitions": {
+        "in": 0.3,
+        "out": 0.3
+      },
+      "metadata": {
+        "hand_shape": "fist",
+        "movement": "pulse",
+        "location": "chest_left",
+        "description": "Sign for 'heart' - pulsing motion on left chest"
+      }
+    },
+    "poumons": {
+      "file": "anatomy/poumons.fbx",
+      "format": "fbx",
+      "duration": 2.2,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["anatomy", "organ"],
+      "transitions": {
+        "in": 0.3,
+        "out": 0.3
+      },
+      "metadata": {
+        "hand_shape": "spread",
+        "movement": "breathing",
+        "location": "chest",
+        "description": "Sign for 'lungs' - breathing motion on chest"
+      }
+    },
+    "hopital": {
+      "file": "medical/hopital.fbx",
+      "format": "fbx",
+      "duration": 2.4,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["medical", "place"],
+      "transitions": {
+        "in": 0.3,
+        "out": 0.3
+      },
+      "metadata": {
+        "hand_shape": "H_shape",
+        "movement": "cross",
+        "location": "neutral",
+        "description": "Sign for 'hospital' - H-shape cross motion"
+      }
+    },
+    "idle": {
+      "file": "common/idle.fbx",
+      "format": "fbx",
+      "duration": 3.0,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["common", "neutral"],
+      "loop": true,
+      "transitions": {
+        "in": 0.5,
+        "out": 0.5
+      },
+      "metadata": {
+        "description": "Neutral standing pose with subtle breathing animation"
+      }
+    },
+    "transition": {
+      "file": "common/transition.fbx",
+      "format": "fbx",
+      "duration": 0.5,
+      "fps": 30,
+      "skeleton": "humanoid_mixamo",
+      "bone_count": 65,
+      "tags": ["common", "transition"],
+      "transitions": {
+        "in": 0.1,
+        "out": 0.1
+      },
+      "metadata": {
+        "description": "Generic transition animation between signs"
+      }
+    }
+  },
+  "notes": [
+    "This is a sample manifest. Replace with actual animation data.",
+    "Duration values should be measured from actual FBX files.",
+    "Skeleton compatibility is critical - all animations must share the same skeleton structure.",
+    "Add more animations by following the same structure."
+  ]
+}

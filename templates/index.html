@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LST - مترجم لغة الإشارة التونسية</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Utility Bar -->
+    <div class="utility-bar">
+        <div class="utility-inner">
+            <div class="brightness-group">
+                <span class="brightness-label" data-i18n="brightness">الإضاءة</span>
+                <span class="bri-icon">🌙</span>
+                <input type="range" id="brightnessSlider" class="brightness-slider" min="50" max="130" value="100">
+                <span class="bri-icon">☀️</span>
+            </div>
+            <div class="textsize-group">
+                <span class="textsize-label" data-i18n="text_size">حجم الخط</span>
+                <button class="size-btn" onclick="changeTextSize(-1)">A-</button>
+                <button class="size-btn" onclick="changeTextSize(0)">A</button>
+                <button class="size-btn" onclick="changeTextSize(1)">A+</button>
+            </div>
+            <div class="lang-group">
+                <span class="lang-icon">🌐</span>
+                <button class="lang-btn active" data-lang="tn">دارجة</button>
+                <button class="lang-btn" data-lang="fr">FR</button>
+                <button class="lang-btn" data-lang="ar">عربي</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="compact-header">
+            <h1 data-i18n="title">🤟 مترجم لغة الإشارة التونسية</h1>
+            <p class="header-sub" data-i18n="subtitle">ترجم من النص ولّا الصوت للغة الإشارة التونسية</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-bar-unified">
+            <a href="/" class="nav-link-unified active">
+                <span>📹</span>
+                <span data-i18n="mode_video">وضع الفيديو</span>
+            </a>
+            <a href="/avatar" class="nav-link-unified">
+                <span>🤖</span>
+                <span data-i18n="mode_avatar">أفاتار 3D</span>
+            </a>
+            <a href="/avatar#camera" class="nav-link-unified">
+                <span>📷</span>
+                <span data-i18n="mode_camera">إشارات → نص</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-grid">
+            <!-- Input Panel -->
+            <section class="panel input-panel">
+                <div class="panel-head">
+                    <span class="badge-icon">💬</span>
+                    <h2 data-i18n="input_label">أدخل الكلمة</h2>
+                </div>
+                
+                <!-- Input Mode Selector -->
+                <div class="input-mode-selector">
+                    <button id="textModeBtn" class="mode-tab active">
+                        <span>✏️</span>
+                        <span data-i18n="mode_text">اكتب</span>
+                    </button>
+                    <button id="voiceModeBtn" class="mode-tab">
+                        <span>🎤</span>
+                        <span data-i18n="mode_voice">احكي</span>
+                    </button>
+                </div>
+
+                <!-- Text Input Mode -->
+                <div id="textInputMode" class="input-mode">
+                    <textarea 
+                        id="textInput" 
+                        data-i18n-placeholder="input_placeholder"
+                        placeholder="مثال: طبيب، سبيطار، ممرض..."
+                        rows="4"
+                        dir="auto"
+                    ></textarea>
+                    <button id="translateBtn" class="btn btn-primary btn-large">
+                        <span>🔍</span>
+                        <span data-i18n="btn_show_sign">أظهر الإشارة</span>
+                    </button>
+                </div>
+
+                <!-- Voice Input Mode -->
+                <div id="voiceInputMode" class="input-mode hidden">
+                    <div class="voice-prompt">
+                        <div id="voiceAnimation" class="voice-animation">
+                            <span class="voice-icon">🎤</span>
+                        </div>
+                        <p id="voiceStatus" class="voice-status" data-i18n="voice_ready">اضغط على الميكرو وقول الكلمة</p>
+                    </div>
+                    <button id="micBtn" class="btn btn-mic btn-large">
+                        <span class="mic-icon">🎤</span>
+                        <span class="mic-label" data-i18n="btn_start_recording">ابدأ التسجيل</span>
+                    </button>
+                    <p class="hint-text" data-i18n="voice_hint">اضغط على الميكرو، انتظر الإشارة، ثم قل الكلمة بوضوح</p>
+                </div>
+
+                <button id="clearBtn" class="btn btn-secondary btn-clear">
+                    <span>🗑️</span>
+                    <span data-i18n="btn_clear">امسح الكل</span>
+                </button>
+
+                <!-- Status -->
+                <div id="statusMessage" class="status-msg hidden"></div>
+                <div id="wordInfo" class="word-info hidden"></div>
+            </section>
+
+            <!-- Video Panel -->
+            <section class="panel video-panel">
+                <div class="panel-head">
+                    <span class="badge-label">📹 VIDEO</span>
+                    <h2 data-i18n="video_title">عرض الإشارات</h2>
+                </div>
+                <div class="video-wrapper">
+                    <video 
+                        id="videoPlayer" 
+                        controls 
+                        controlsList="nodownload"
+                        class="hidden"
+                    >
+                        Votre navigateur ne supporte pas la lecture vidéo.
+                    </video>
+                    <div id="videoPlaceholder" class="video-placeholder">
+                        <div class="ph-content">
+                            <span class="ph-icon">🎬</span>
+                            <p data-i18n="video_placeholder">الفيديوهات تظهر هوني</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue -->
+                <div id="videoQueue" class="video-queue hidden">
+                    <h3 data-i18n="queue_title">قائمة التشغيل</h3>
+                    <div id="queueList" class="queue-list"></div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div id="playbackControls" class="playback-controls hidden">
+                    <button id="prevBtn" class="control-btn" disabled>
+                        <span>⏮</span> <span data-i18n="btn_prev">إلّي قبل</span>
+                    </button>
+                    <button id="playPauseBtn" class="control-btn">
+                        <span>⏸</span> <span data-i18n="btn_pause">وقّف</span>
+                    </button>
+                    <button id="nextBtn" class="control-btn" disabled>
+                        <span>⏭</span> <span data-i18n="btn_next">إلّي بعد</span>
+                    </button>
+                    <button id="stopBtn" class="control-btn ctrl-stop">
+                        <span>⏹</span> <span data-i18n="btn_stop">أوقف</span>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Instructions -->
+        <section class="instructions-box">
+            <details>
+                <summary>ℹ️ <span data-i18n="instructions_title">كيفاش تستعمل التطبيق</span></summary>
+                <ol>
+                    <li data-i18n="instr_1">اكتب الكلام في الخانة</li>
+                    <li data-i18n="instr_2">ولّا اضغط على الميكرو واحكي</li>
+                    <li data-i18n="instr_3">اضغط "ترجم" باش تشوف الإشارات</li>
+                    <li data-i18n="instr_4">الفيديوهات تتلعب وحدة وحدة</li>
+                    <li data-i18n="instr_5">استعمل الأزرار باش تتنقل بين الإشارات</li>
+                </ol>
+                <p class="note-text" data-i18n="note">
+                    ملاحظة: كان الكلمات إلّي في القاموس الطبي هوما إلّي تترجم.
+                </p>
+            </details>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p data-i18n="footer">© 2026 - قاموس طبي بلغة الإشارة التونسية - مشروع هاكاثون</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

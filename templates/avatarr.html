@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LST - إشارات → نص</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/i18n.js"></script>
+    <style>
+    <style>
+        /* Override body styles for embedded avatar display */
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            display: block;
+            padding: 0;
+        }
+
+        .container {
+            background: transparent;
+            border-radius: 0;
+            box-shadow: none;
+            max-width: 100%;
+            width: 100%;
+            overflow: visible;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .avatar-container {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .avatar {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .avatar-body {
+            width: 100%;
+            height: 100%;
+            background: #3498db;
+            border-radius: 50% 50% 60% 60%;
+            position: relative;
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        .avatar-head {
+            width: 120px;
+            height: 120px;
+            background: #f0c48c;
+            border-radius: 50%;
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid #d4a574;
+        }
+
+        .avatar-eyes {
+            display: flex;
+            gap: 30px;
+            position: absolute;
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .eye {
+            width: 15px;
+            height: 15px;
+            background: #2c3e50;
+            border-radius: 50%;
+            animation: blink 4s infinite;
+        }
+
+        .avatar-mouth {
+            width: 40px;
+            height: 20px;
+            border: 3px solid #2c3e50;
+            border-top: none;
+            border-radius: 0 0 40px 40px;
+            position: absolute;
+            top: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .hands {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            top: 120px;
+        }
+
+        .hand {
+            width: 60px;
+            height: 80px;
+            background: #f0c48c;
+            border-radius: 40% 40% 50% 50%;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+
+        .hand.left {
+            left: -30px;
+            transform: rotate(-20deg);
+        }
+
+        .hand.right {
+            right: -30px;
+            transform: rotate(20deg);
+        }
+
+        .hand.signing {
+            animation: signing 2s ease-in-out;
+        }
+
+        @keyframes signing {
+            0%, 100% { transform: translateY(0) rotate(-20deg); }
+            25% { transform: translateY(-20px) rotate(-40deg); }
+            50% { transform: translateY(-10px) rotate(0deg); }
+            75% { transform: translateY(-20px) rotate(20deg); }
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes blink {
+            0%, 96%, 100% { height: 15px; }
+            98% { height: 2px; }
+        }
+
+        .status-text {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+
+        .translation-text {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 20px;
+            color: #667eea;
+            font-weight: bold;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .phrases-section {
+            margin-top: 30px;
+        }
+
+        .phrases-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .phrase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .phrase-btn {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .phrase-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .recording {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .info-box p {
+            color: #856404;
+            margin: 0;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .category-tab {
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .category-tab:hover {
+            background: #d5dbdb;
+            transform: translateY(-2px);
+        }
+
+        .category-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .search-section {
+            margin-top: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .phrase-count {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Utility Bar -->
+    <div class="utility-bar">
+        <div class="utility-inner">
+            <div class="brightness-group">
+                <span class="brightness-label" data-i18n="brightness">الإضاءة</span>
+                <span class="bri-icon">🌙</span>
+                <input type="range" id="brightnessSlider" class="brightness-slider" min="50" max="130" value="100">
+                <span class="bri-icon">☀️</span>
+            </div>
+            <div class="textsize-group">
+                <span class="textsize-label" data-i18n="text_size">حجم الخط</span>
+                <button class="size-btn" onclick="changeTextSize(-1)">A-</button>
+                <button class="size-btn" onclick="changeTextSize(0)">A</button>
+                <button class="size-btn" onclick="changeTextSize(1)">A+</button>
+            </div>
+            <div class="lang-group">
+                <span class="lang-icon">🌐</span>
+                <button class="lang-btn active" data-lang="tn">دارجة</button>
+                <button class="lang-btn" data-lang="fr">FR</button>
+                <button class="lang-btn" data-lang="ar">عربي</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="compact-header">
+            <h1>🤟 <span data-i18n="title">مترجم لغة الإشارة التونسية</span></h1>
+            <p class="header-sub" data-i18n="mode_camera">إشارات → نص</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-bar-unified">
+            <a href="/" class="nav-link-unified">
+                <span>📹</span>
+                <span data-i18n="mode_video">وضع الفيديو</span>
+            </a>
+            <a href="/avatar" class="nav-link-unified">
+                <span>🤖</span>
+                <span data-i18n="mode_avatar">أفاتار 3D</span>
+            </a>
+            <a href="/avatarr" class="nav-link-unified active">
+                <span>📷</span>
+                <span data-i18n="mode_camera">إشارات → نص</span>
+            </a>
+        </nav>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="avatar-container">
+                <div class="avatar">
+                    <div class="avatar-body">
+                        <div class="avatar-head">
+                            <div class="avatar-eyes">
+                                <div class="eye"></div>
+                                <div class="eye"></div>
+                            </div>
+                            <div class="avatar-mouth"></div>
+                        </div>
+                        <div class="hands">
+                            <div class="hand left" id="leftHand"></div>
+                            <div class="hand right" id="rightHand"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-text" id="statusText">اضغط على الميكروفون للبدء</div>
+                <div class="translation-text" id="translationText">استعد للترجمة...</div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" id="micBtn" onclick="startListening()">
+                    🎤 ابدأ الاستماع
+                </button>
+                <button class="btn btn-secondary" id="stopBtn" onclick="stopListening()" disabled>
+                    ⏹️ إيقاف
+                </button>
+            </div>
+
+            <div class="phrases-section">
+                <h3>📚 قاموس العبارات التونسية - اختر فئة:</h3>
+                
+                <div class="category-tabs">
+                    <button class="category-tab active" onclick="showCategory('greetings')">👋 التحيات</button>
+                    <button class="category-tab" onclick="showCategory('questions')">❓ أسئلة</button>
+                    <button class="category-tab" onclick="showCategory('responses')">💬 ردود</button>
+                    <button class="category-tab" onclick="showCategory('emotions')">😊 مشاعر</button>
+                    <button class="category-tab" onclick="showCategory('food')">🍽️ طعام</button>
+                    <button class="category-tab" onclick="showCategory('family')">👨‍👩‍👧‍👦 عائلة</button>
+                    <button class="category-tab" onclick="showCategory('time')">⏰ وقت</button>
+                    <button class="category-tab" onclick="showCategory('all')">📖 الكل</button>
+                </div>
+
+                <div id="phrasesContainer" class="phrase-grid">
+                    <!-- Phrases will be populated by JavaScript -->
+                </div>
+
+                <div class="search-section">
+                    <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن عبارة..." onkeyup="searchPhrases()">
+                </div>
+            </div>
+
+            <div class="info-box">
+                <p>💡 القاموس يحتوي على أكثر من 100 عبارة تونسية! استخدم البحث أو اختر فئة معينة</p>
+            </div>
+        </div>
+    </div>
+    </div> <!-- Close app-container -->
+
+    <script src="/static/script.js"></script>
+    <script>
+        let recognition;
+        let isListening = false;
+
+        // Comprehensive Tunisian dialect sign language dictionary
+        const signLanguageDictionary = {
+            // Greetings - التحيات
+            'أهلا': 'رفع اليد اليمنى وتحريكها يمينا ويسارا بابتسامة',
+            'مرحبا': 'رفع اليد اليمنى وتحريكها يمينا ويسارا بابتسامة',
+            'صباح الخير': 'إشارة الشمس بحركة دائرية باليد',
+            'مساء الخير': 'إشارة القمر بحركة نصف دائرة',
+            'تصبح على خير': 'وضع اليدين معا جانب الوجه كالنوم',
+            'بسلامة': 'رفع اليد للأعلى وتحريكها يمينا ويسارا',
+            'وداعا': 'رفع اليد للأعلى وتحريكها يمينا ويسارا',
+            
+            // Common Questions - أسئلة شائعة
+            'كيفاش راك': 'إشارة الإصبع نحو الشخص ثم وضع اليد على القلب',
+            'كيف حالك': 'إشارة الإصبع نحو الشخص ثم وضع اليد على القلب',
+            'شنوة أخبارك': 'إشارة السؤال برفع اليدين للأعلى',
+            'شبيك': 'إشارة السؤال بإصبع السبابة نحو الشخص',
+            'واش تحب': 'إشارة القلب ثم السؤال بحركة اليد',
+            'وين رايح': 'إشارة الاتجاه بإصبع السبابة',
+            'وقتاش': 'إشارة الساعة بحركة دائرية على المعصم',
+            'شحال': 'عد بالأصابع أو إشارة الكمية',
+            'علاش': 'إشارة السؤال بهز الكتفين',
+            
+            // Responses - الردود
+            'بخير الحمد لله': 'رفع الإبهام للأعلى مع الابتسامة',
+            'مليح': 'رفع الإبهام للأعلى',
+            'ياسر مزيان': 'رفع الإبهامين للأعلى',
+            'ماشي باهي': 'هز الرأس وخفض الإبهام للأسفل',
+            'موش باهي': 'هز الرأس وخفض الإبهام للأسفل',
+            'برشا': 'رفع اليدين للأعلى بحركة واسعة',
+            'شوية': 'إشارة الشوية بالإصبعين',
+            'ما فماش': 'تقاطع اليدين على شكل X',
+            
+            // Politeness - الأدب
+            'شكرا': 'وضع اليد على القلب ثم تحريكها للأمام',
+            'يعطيك الصحة': 'إشارة القوة بثني الذراع',
+            'من فضلك': 'وضع اليدين معا كطلب',
+            'عفوا': 'وضع اليد على الصدر والانحناء قليلا',
+            'سامحني': 'وضع اليدين على الصدر مع الانحناء',
+            'بالطيب': 'إشارة القلب برفق',
+            
+            // Yes/No - نعم/لا
+            'نعم': 'إيماءة بالرأس للأسفل والأعلى',
+            'إي': 'إيماءة بالرأس للأسفل والأعلى',
+            'لا': 'هز الرأس يمينا ويسارا',
+            'لالا': 'هز الرأس يمينا ويسارا مع رفع الإصبع',
+            
+            // Understanding - الفهم
+            'ما فهمتش': 'هز الرأس ووضع اليد على الجبهة',
+            'لم أفهم': 'هز الرأس ووضع اليد على الجبهة',
+            'فهمت': 'إيماءة بالرأس مع رفع الإبهام',
+            'عاود قول': 'حركة دائرية باليد',
+            'أفهم شوية': 'إشارة الشوية بالأصابع',
+            
+            // Emotions - المشاعر
+            'نحبك': 'وضع اليدين على القلب على شكل قلب',
+            'أحبك': 'وضع اليدين على القلب على شكل قلب',
+            'فرحان': 'رفع اليدين بابتسامة عريضة',
+            'زعفان': 'عبوس مع خفض الرأس',
+            'تعبان': 'وضع اليد على الجبهة',
+            'مبسوط': 'ابتسامة مع رفع الإبهامين',
+            
+            // Family - العائلة
+            'عائلتي': 'تشكيل دائرة باليدين',
+            'أمي': 'إشارة الأم بلمس الخد',
+            'أبي': 'إشارة الأب بلمس الذقن',
+            'خويا': 'إشارة الأخ برفع اليد',
+            'ختي': 'إشارة الأخت بلمس الشعر',
+            
+            // Food & Drink - الطعام والشراب
+            'ماكلة': 'حركة الأكل بتقريب اليد من الفم',
+            'شربة': 'حركة الشرب بإمالة اليد',
+            'كسكسي': 'حركة دائرية باليدين',
+            'برك': 'إشارة الشاي برفع الكأس وهمي',
+            'قهوة': 'حركة طحن القهوة',
+            'خبز': 'حركة كسر الخبز',
+            'جيع': 'وضع اليد على البطن',
+            'عطشان': 'إشارة الحلق',
+            'شبعت': 'رفع اليد مع الرفض',
+            
+            // Time - الوقت
+            'دابا': 'إشارة للحظة الحالية بإصبع السبابة',
+            'توا': 'إشارة للحظة الحالية بإصبع السبابة',
+            'برهة': 'إشارة الانتظار برفع الإصبع',
+            'فيسع': 'حركة سريعة باليد',
+            'اليوم': 'إشارة الشمس في منتصف السماء',
+            'البارح': 'إشارة للخلف فوق الكتف',
+            'غدوة': 'إشارة للأمام',
+            
+            // Places - الأماكن
+            'تونس الخضراء': 'إشارة الخريطة ثم إشارة اللون الأخضر',
+            'دار': 'تشكيل سقف بقمة اليدين',
+            'شارع': 'حركة الطريق بامتداد اليدين',
+            'سوق': 'حركة التبادل باليدين',
+            'جامع': 'إشارة المنارة للأعلى',
+            
+            // Common Verbs - أفعال شائعة
+            'نمشي': 'حركة المشي بإصبعين',
+            'نجي': 'إشارة المجيء بتقريب اليد',
+            'نعمل': 'حركة العمل بتحريك اليدين',
+            'نقرا': 'حركة القراءة بفتح كتاب وهمي',
+            'نكتب': 'حركة الكتابة بالقلم',
+            'نشوف': 'إشارة للعينين',
+            'نسمع': 'إشارة للأذنين',
+            
+            // Weather - الطقس
+            'شمس': 'حركة دائرية بإشارة الشمس',
+            'شتاء': 'إشارة البرد بالارتجاف',
+            'صيف': 'إشارة الحرارة بمسح الجبين',
+            'شتي': 'حركة المطر بالأصابع من الأعلى',
+            
+            // Numbers expressions - تعبيرات الأرقام
+            'واحد': 'رفع إصبع واحد',
+            'زوز': 'رفع إصبعين',
+            'ثلاثة': 'رفع ثلاثة أصابع',
+            'برشا': 'رفع اليدين للأعلى بحركة واسعة',
+            
+            // Common expressions - تعبيرات شائعة
+            'عندك الحق': 'رفع الإبهام للأعلى',
+            'إن شاء الله': 'رفع إصبع السبابة للسماء',
+            'الحمد لله': 'وضع اليد على القلب',
+            'ماشي مشكل': 'رفع اليد بحركة الموافقة',
+            'عادي': 'حركة اليد المستوية',
+            'يا سلام': 'رفع اليدين بتعجب',
+            'بالله': 'حركة الدعاء باليدين',
+            'ربي يعينك': 'رفع اليدين للدعاء',
+            
+            // Technology - التكنولوجيا
+            'تيليفون': 'إشارة الهاتف باليد على الأذن',
+            'كمبيوتر': 'حركة الكتابة على لوحة المفاتيح',
+            'انترنت': 'حركة الاتصال العالمي',
+            
+            // Health - الصحة
+            'مريض': 'وضع اليد على الجبهة بتعب',
+            'طبيب': 'إشارة السماعة الطبية',
+            'دواء': 'حركة تناول الحبوب',
+            'مرتاح': 'حركة الراحة والاسترخاء'
+        };
+
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'ar-TN'; // Tunisian Arabic
+
+                recognition.onstart = function() {
+                    isListening = true;
+                    document.getElementById('statusText').textContent = 'جاري الاستماع... تكلم بالدارجة التونسية';
+                    document.getElementById('micBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    document.getElementById('micBtn').classList.add('recording');
+                };
+
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        translatePhrase(finalTranscript.trim());
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    document.getElementById('statusText').textContent = 'خطأ: ' + event.error;
+                    stopListening();
+                };
+
+                recognition.onend = function() {
+                    if (isListening) {
+                        recognition.start(); // Restart if still listening
+                    }
+                };
+            } else {
+                alert('عذرا، المتصفح لا يدعم التعرف على الصوت. جرب Chrome أو Edge.');
+            }
+        }
+
+        function startListening() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                recognition.stop();
+            }
+            document.getElementById('statusText').textContent = 'توقف الاستماع';
+            document.getElementById('micBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('micBtn').classList.remove('recording');
+        }
+
+        function translatePhrase(phrase) {
+            console.log('Translating:', phrase);
+            
+            // Normalize the phrase
+            const normalizedPhrase = phrase.trim().toLowerCase();
+            
+            // Search for matching sign
+            let signDescription = null;
+            for (const [key, value] of Object.entries(signLanguageDictionary)) {
+                if (normalizedPhrase.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedPhrase)) {
+                    signDescription = value;
+                    break;
+                }
+            }
+
+            // Display results
+            if (signDescription) {
+                document.getElementById('translationText').textContent = signDescription;
+                document.getElementById('statusText').textContent = '✅ تمت الترجمة: ' + phrase;
+                animateSigning();
+            } else {
+                document.getElementById('translationText').textContent = 'لم يتم العثور على ترجمة لهذه العبارة';
+                document.getElementById('statusText').textContent = '❌ عبارة غير موجودة في القاموس: ' + phrase;
+            }
+        }
+
+        function animateSigning() {
+            const leftHand = document.getElementById('leftHand');
+            const rightHand = document.getElementById('rightHand');
+            
+            // Add signing animation
+            leftHand.classList.add('signing');
+            rightHand.classList.add('signing');
+            
+            // Remove animation after completion
+            setTimeout(() => {
+                leftHand.classList.remove('signing');
+                rightHand.classList.remove('signing');
+            }, 2000);
+        }
+
+        // Categorized phrases
+        const phraseCategories = {
+            greetings: ['أهلا', 'مرحبا', 'صباح الخير', 'مساء الخير', 'تصبح على خير', 'بسلامة', 'وداعا'],
+            questions: ['كيفاش راك', 'كيف حالك', 'شنوة أخبارك', 'شبيك', 'واش تحب', 'وين رايح', 'وقتاش', 'شحال', 'علاش'],
+            responses: ['بخير الحمد لله', 'مليح', 'ياسر مزيان', 'ماشي باهي', 'موش باهي', 'برشا', 'شوية', 'ما فماش', 'نعم', 'إي', 'لا', 'لالا'],
+            emotions: ['نحبك', 'أحبك', 'فرحان', 'زعفان', 'تعبان', 'مبسوط'],
+            food: ['ماكلة', 'شربة', 'كسكسي', 'برك', 'قهوة', 'خبز', 'جيع', 'عطشان', 'شبعت'],
+            family: ['عائلتي', 'أمي', 'أبي', 'خويا', 'ختي'],
+            time: ['دابا', 'توا', 'برهة', 'فيسع', 'اليوم', 'البارح', 'غدوة'],
+            politeness: ['شكرا', 'يعطيك الصحة', 'من فضلك', 'عفوا', 'سامحني', 'بالطيب'],
+            understanding: ['ما فهمتش', 'لم أفهم', 'فهمت', 'عاود قول', 'أفهم شوية'],
+            places: ['تونس الخضراء', 'دار', 'شارع', 'سوق', 'جامع'],
+            verbs: ['نمشي', 'نجي', 'نعمل', 'نقرا', 'نكتب', 'نشوف', 'نسمع'],
+            weather: ['شمس', 'شتاء', 'صيف', 'شتي'],
+            numbers: ['واحد', 'زوز', 'ثلاثة', 'برشا'],
+            expressions: ['عندك الحق', 'إن شاء الله', 'الحمد لله', 'ماشي مشكل', 'عادي', 'يا سلام', 'بالله', 'ربي يعينك'],
+            technology: ['تيليفون', 'كمبيوتر', 'انترنت'],
+            health: ['مريض', 'طبيب', 'دواء', 'مرتاح']
+        };
+
+        let currentCategory = 'greetings';
+        let allPhrases = [];
+
+        function initializePhrases() {
+            // Create a flat list of all phrases
+            allPhrases = Object.values(phraseCategories).flat();
+            showCategory('greetings');
+        }
+
+        function showCategory(category) {
+            currentCategory = category;
+            const container = document.getElementById('phrasesContainer');
+            container.innerHTML = '';
+
+            // Update active tab
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event?.target?.classList.add('active');
+
+            let phrasesToShow = [];
+            if (category === 'all') {
+                phrasesToShow = allPhrases;
+            } else if (phraseCategories[category]) {
+                phrasesToShow = phraseCategories[category];
+            }
+
+            phrasesToShow.forEach(phrase => {
+                const btn = document.createElement('button');
+                btn.className = 'phrase-btn';
+                btn.textContent = phrase;
+                btn.onclick = () => translatePhrase(phrase);
+                container.appendChild(btn);
+            });
+
+            // Add phrase count
+            const countDiv = document.createElement('div');
+            countDiv.className = 'phrase-count';
+            countDiv.textContent = `عدد العبارات: ${phrasesToShow.length}`;
+            container.appendChild(countDiv);
+        }
+
+        function searchPhrases() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const container = document.getElementById('phrasesContainer');
+            container.innerHTML = '';
+
+            if (!searchTerm) {
+                showCategory(currentCategory);
+                return;
+            }
+
+            const matchedPhrases = allPhrases.filter(phrase => 
+                phrase.toLowerCase().includes(searchTerm)
+            );
+
+            if (matchedPhrases.length === 0) {
+                container.innerHTML = '<div class="phrase-count">لم يتم العثور على عبارات مطابقة</div>';
+                return;
+            }
+
+            matchedPhrases.forEach(phrase => {
+                const btn = document.createElement('button');
+                btn.className = 'phrase-btn';
+                btn.textContent = phrase;
+                btn.onclick = () => translatePhrase(phrase);
+                container.appendChild(btn);
+            });
+
+            const countDiv = document.createElement('div');
+            countDiv.className = 'phrase-count';
+            countDiv.textContent = `نتائج البحث: ${matchedPhrases.length}`;
+            container.appendChild(countDiv);
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            // Initialize i18n
+            if (typeof I18N !== 'undefined') {
+                I18N.init();
+            }
+            initSpeechRecognition();
+            initializePhrases();
+        };
+    </script>
+</body>
+</html>

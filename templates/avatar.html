@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LST أفاتار 3D - لغة الإشارة التونسية</title>
+
+    <!-- Three.js (local) -->
+    <script src="/static/libs/three.min.js"></script>
+    <script src="/static/libs/GLTFLoader.js"></script>
+    <script src="/static/libs/OrbitControls.js"></script>
+
+    <!-- i18n -->
+    <script src="/static/i18n.js"></script>
+
+    <!-- MediaPipe Pose + Face Mesh (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.min.js" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Avatar-specific overrides on shared light theme */
+        body{background:var(--bg);color:var(--text)}
+
+        .container{max-width:1500px;margin:0 auto;padding:12px}
+
+        /* Re-use shared utility bar and navigation from style.css */
+
+        .main-layout{display:grid;grid-template-columns:280px 1fr 1fr;gap:16px}
+        @media(max-width:1100px){.main-layout{grid-template-columns:1fr}}
+
+        .panel{background:var(--bg-card);border:1px solid var(--border-warm);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);transition:box-shadow .3s}
+        .panel:hover{box-shadow:var(--shadow-md)}
+        .panel h2{font-size:1rem;margin-bottom:10px;color:var(--primary);font-weight:600}
+
+        textarea{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:var(--radius-sm);background:#faf9f7;color:var(--text);font-size:.95rem;resize:vertical;min-height:70px;font-family:inherit;line-height:1.5}
+        textarea:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(44,95,124,.1);background:#fff}
+        textarea::placeholder{color:var(--text-muted)}
+
+        .btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+        .btn{padding:10px 16px;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .3s;flex:1;justify-content:center;font-family:inherit}
+        .btn:hover{transform:translateY(-1px)}
+        .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .btn-p{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 3px 12px rgba(44,95,124,.3)}
+        .btn-p:hover:not(:disabled){box-shadow:0 5px 20px rgba(44,95,124,.4)}
+        .btn-s{background:var(--bg);color:var(--text-sec);border:1px solid var(--border)}
+        .btn-s:hover:not(:disabled){background:#e8e3dd}
+        .btn-m{background:linear-gradient(135deg,var(--coral),#d35c44);color:#fff;box-shadow:0 3px 12px rgba(224,122,95,.3)}
+        .btn-m:hover:not(:disabled){box-shadow:0 5px 20px rgba(224,122,95,.4)}
+        .btn-m.rec{animation:pul 1.5s infinite}
+        @keyframes pul{0%,100%{box-shadow:0 0 0 0 rgba(224,122,95,.4)}50%{box-shadow:0 0 0 10px rgba(224,122,95,0)}}
+
+        .status{margin-top:10px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.85rem;text-align:center;font-weight:500}
+        .status.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+        .status.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+        .status.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+        .status.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+        .hid{display:none!important}
+
+        .quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}
+        .qb{padding:8px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer;font-size:.82rem;text-align:center;transition:.3s;font-family:inherit}
+        .qb:hover{background:rgba(44,95,124,.08);border-color:var(--primary-light)}
+
+        .vid-wrap{width:100%;aspect-ratio:4/3;border-radius:var(--radius-sm);overflow:hidden;background:#1a2332;position:relative;box-shadow:var(--shadow-md)}
+        .vid-wrap video,.vid-wrap canvas{width:100%;height:100%;position:absolute;top:0;left:0}
+        .vid-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:.9rem;position:relative;z-index:1}
+        .vid-ph .ic{font-size:2.5rem;margin-bottom:6px}
+
+        #avatar-container{width:100%;aspect-ratio:4/3;border-radius:var(--radius-sm);overflow:hidden;background:linear-gradient(180deg,#e8e2da,#d6cfc5);position:relative;box-shadow:var(--shadow-md)}
+        #avatar-container canvas{border-radius:var(--radius-sm)}
+        .load-ov{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(245,240,235,.95);border-radius:var(--radius-sm);z-index:10;color:var(--text)}
+        .spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:sp 1s linear infinite;margin-bottom:10px}
+        @keyframes sp{to{transform:rotate(360deg)}}
+
+        .ctrl-bar{display:flex;gap:6px;margin-top:10px;justify-content:center;flex-wrap:wrap}
+        .cb{padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);cursor:pointer;font-size:.82rem;transition:.3s;font-family:inherit;font-weight:500}
+        .cb:hover:not(:disabled){background:var(--primary);color:#fff;border-color:var(--primary)}
+        .cb:disabled{opacity:.35;cursor:not-allowed}
+        .cb.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+        .q-sec{margin-top:10px}.q-sec h3{font-size:.88rem;margin-bottom:6px;color:var(--primary)}
+        .q-list{display:flex;flex-wrap:wrap;gap:5px}
+        .qi{padding:5px 12px;border-radius:20px;font-size:.8rem;background:var(--bg);border:1px solid var(--border);cursor:pointer;transition:.3s;color:var(--text)}
+        .qi.act{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 2px 8px rgba(44,95,124,.3)}
+        .qi.dn{opacity:.5}
+
+        .label{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:600;margin-bottom:6px;letter-spacing:.3px}
+        .label.lv{background:rgba(16,185,129,.12);color:#065f46}
+        .label.la{background:rgba(44,95,124,.1);color:var(--primary)}
+
+        .anim-ind{margin-top:8px;text-align:center;font-size:.85rem;color:var(--text-sec)}
+        .anim-ind .cw{font-size:1.2rem;font-weight:700;color:var(--primary);display:block;margin-top:2px}
+
+        .pose-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:600;margin-top:8px}
+        .pose-badge.active{background:rgba(16,185,129,.12);color:#065f46}
+        .pose-badge.off{background:rgba(239,68,68,.08);color:#991b1b}
+        .pose-badge .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+        .pose-badge.active .dot{background:#10b981;animation:blink 1s infinite}
+        .pose-badge.off .dot{background:#ef4444}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+        footer{text-align:center;padding:16px 0;margin-top:16px;color:var(--text-muted);font-size:.82rem}
+        footer a{color:var(--primary)}
+
+        /* ===== CAMERA RECOGNITION MODE ===== */
+        .cam-wrap{width:100%;aspect-ratio:4/3;border-radius:var(--radius-sm);overflow:hidden;background:#1a2332;position:relative;box-shadow:var(--shadow-md)}
+        .cam-wrap video,.cam-wrap canvas{width:100%;height:100%;position:absolute;top:0;left:0;object-fit:cover}
+        #camVideo{transform:scaleX(-1)}
+        #camCanvas{transform:scaleX(-1);z-index:2}
+        .cam-overlay{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);backdrop-filter:blur(10px);color:#fff;padding:8px 18px;border-radius:20px;display:flex;align-items:center;gap:10px;font-size:1rem;font-weight:600;border:2px solid rgba(255,255,255,.3);z-index:10;white-space:nowrap;transition:border-color .3s,box-shadow .3s}
+        .cam-overlay .conf{font-size:.78rem;opacity:.8;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:10px}
+        .cam-progress{position:absolute;bottom:0;left:0;right:0;height:5px;background:rgba(255,255,255,.1);z-index:11}
+        .cam-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--primary),#10b981);border-radius:0 3px 3px 0;transition:width .15s}
+        .cam-detection{background:var(--bg);border:1px solid var(--border-warm);border-radius:var(--radius-sm);padding:12px}
+        .cam-det-label{font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+        .cam-det-value{font-size:1.1rem;font-weight:600;color:var(--primary);margin-bottom:4px}
+        .cam-det-word{font-size:1.3rem;font-weight:700;color:#065f46}
+        .cam-sentence{min-height:60px;background:var(--bg);border:2px dashed var(--border);border-radius:var(--radius-sm);padding:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+        .cam-empty{color:var(--text-muted);font-style:italic;font-size:.85rem}
+        .cam-word{padding:5px 12px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:18px;font-weight:600;font-size:.9rem;cursor:pointer;transition:.3s;animation:cwAppear .3s ease}
+        .cam-word:hover{transform:scale(1.08);box-shadow:0 2px 10px rgba(44,95,124,.4)}
+        .cam-word:hover::after{content:' ✕';font-size:.7rem}
+        @keyframes cwAppear{from{opacity:0;transform:translateY(8px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .cam-history{max-height:250px;overflow-y:auto}
+        .cam-h-entry{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg);border-radius:6px;margin-bottom:4px;font-size:.8rem;border-inline-start:3px solid var(--primary);animation:slideIn .3s ease;color:var(--text)}
+        .cam-h-time{color:var(--text-muted);min-width:55px;font-size:.72rem}
+        .cam-h-gesture{font-weight:600;min-width:90px}
+        .cam-h-word{color:#065f46;font-weight:700;min-width:70px}
+        .cam-h-ar{color:var(--text-muted);direction:rtl;flex:1;font-size:.75rem}
+        .cam-guide{display:grid;grid-template-columns:1fr;gap:4px}
+        .cam-guide-item{padding:6px 10px;background:var(--bg);border-radius:6px;font-size:.8rem;border:1px solid var(--border);color:var(--text-sec)}
+        .cam-confirmed{animation:camFlash .5s ease}@keyframes camFlash{0%,100%{background:var(--bg)}50%{background:rgba(16,185,129,.1)}}
+
+        /* ===== RESPONSIVE MEDIA QUERIES ===== */
+        @media(max-width:768px){
+            .container{padding:8px}
+            header{padding:15px 12px}
+            header h1{font-size:1.4rem}
+            header .sub{font-size:.8rem}
+            .nav-bar{flex-direction:column}
+            .nav-link{max-width:100%;padding:10px 12px;font-size:.85rem}
+            .main-layout{grid-template-columns:1fr;gap:10px}
+            .panel{padding:12px}
+            .panel h2{font-size:.9rem}
+            textarea{font-size:.88rem;min-height:60px}
+            .btn-row{flex-direction:column}
+            .btn{font-size:.82rem;padding:8px 12px}
+            .quick-grid{grid-template-columns:1fr;gap:4px}
+            .qb{font-size:.78rem}
+            .ctrl-bar{gap:4px}
+            .cb{padding:6px 10px;font-size:.75rem}
+            .cam-overlay{font-size:.85rem;padding:6px 12px}
+            .cam-overlay .conf{font-size:.7rem}
+            .cam-det-value{font-size:1rem}
+            .cam-det-word{font-size:1.1rem}
+            .cam-sentence{min-height:50px;padding:8px}
+            .cam-word{font-size:.82rem;padding:4px 10px}
+            .cam-h-entry{flex-direction:column;align-items:flex-start;gap:3px}
+            .cam-h-time,.cam-h-gesture,.cam-h-word,.cam-h-ar{min-width:auto;width:100%}
+            .cam-guide-item{font-size:.75rem}
+        }
+        @media(max-width:480px){
+            .container{padding:5px}
+            header{padding:12px 8px}
+            header h1{font-size:1.2rem}
+            header .sub{font-size:.75rem}
+            .nav-link{padding:8px 10px;font-size:.78rem;gap:4px}
+            .panel{padding:10px}
+            .panel h2{font-size:.85rem}
+            textarea{font-size:.82rem;padding:10px}
+            .btn{font-size:.75rem;padding:7px 10px;gap:4px}
+            .status{font-size:.78rem;padding:8px 10px}
+            .quick-grid{gap:3px}
+            .qb{padding:6px 4px;font-size:.72rem}
+            .cb{padding:5px 8px;font-size:.7rem}
+            .label{font-size:.68rem;padding:2px 8px}
+            .cam-overlay{font-size:.75rem;padding:5px 10px;gap:6px}
+            .cam-det-label{font-size:.7rem}
+            .cam-det-value{font-size:.9rem}
+            .cam-det-word{font-size:1rem}
+            .cam-sentence{min-height:45px;padding:6px}
+            .cam-word{font-size:.75rem;padding:3px 8px}
+            .cam-guide-item{font-size:.7rem;padding:5px 8px}
+            .cam-history{max-height:180px}
+            footer{font-size:.75rem}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Utility Bar -->
+    <div class="utility-bar">
+        <div class="utility-inner">
+            <div class="brightness-group">
+                <span class="brightness-label" data-i18n="brightness">الإضاءة</span>
+                <span class="bri-icon">🌙</span>
+                <input type="range" id="brightnessSlider" class="brightness-slider" min="50" max="130" value="100">
+                <span class="bri-icon">☀️</span>
+            </div>
+            <div class="textsize-group">
+                <span class="textsize-label" data-i18n="text_size">حجم الخط</span>
+                <button class="size-btn" onclick="changeTextSize(-1)">A-</button>
+                <button class="size-btn" onclick="changeTextSize(0)">A</button>
+                <button class="size-btn" onclick="changeTextSize(1)">A+</button>
+            </div>
+            <div class="lang-group">
+                <span class="lang-icon">🌐</span>
+                <button class="lang-btn active" data-lang="tn">دارجة</button>
+                <button class="lang-btn" data-lang="fr">FR</button>
+                <button class="lang-btn" data-lang="ar">عربي</button>
+            </div>
+        </div>
+    </div>
+    <header class="compact-header">
+        <h1 data-i18n="avatar_title">🤟 أفاتار 3D - لغة الإشارة التونسية</h1>
+        <p class="header-sub" data-i18n="avatar_subtitle">أفاتار يقلّد حركات الفيديو في الوقت الحقيقي</p>
+    </header>
+    <nav class="nav-bar-unified">
+        <a href="/" class="nav-link-unified"><span>📹</span> <span data-i18n="mode_video">وضع الفيديو</span></a>
+        <a href="/avatar" class="nav-link-unified active" id="avatarModeLink"><span>🤖</span> <span data-i18n="mode_avatar">أفاتار 3D</span></a>
+        <a href="#" id="camModeBtn" class="nav-link-unified" onclick="toggleCameraMode(); return false;"><span>📷</span> <span data-i18n="mode_camera">إشارات → نص</span></a>
+    </nav>
+    <div class="main-layout">
+        <!-- COL 1: Input -->
+        <div class="panel">
+            <h2>✏️ <span data-i18n="text_or_voice">نص ولّا صوت</span></h2>
+            <textarea id="textInput" data-i18n-placeholder="input_placeholder" placeholder="مثال: طبيب، سبيطار، ممرض..." rows="3" dir="auto"></textarea>
+            <div class="btn-row">
+                <button id="translateBtn" class="btn btn-p">🔄 <span data-i18n="translate">ترجم</span></button>
+                <button id="micBtn" class="btn btn-m">🎤</button>
+                <button id="clearBtn" class="btn btn-s">🗑️ <span data-i18n="btn_clear">امسح</span></button>
+            </div>
+            <div id="statusBar" class="status info hid"></div>
+            <div id="qSec" class="q-sec hid">
+                <h3>📋 <span data-i18n="queue_label">قائمة الانتظار</span></h3>
+                <div id="qList" class="q-list"></div>
+            </div>
+            <div style="margin-top:10px">
+                <h3 style="font-size:.88rem;color:var(--primary);margin-bottom:6px">⚡ <span data-i18n="quick_words">كلمات سريعة</span></h3>
+                <div class="quick-grid">
+                    <button class="qb" onclick="go('hopital')">🏥 <span data-i18n="hospital">سبيطار</span></button>
+                    <button class="qb" onclick="go('medecin')">👨‍⚕️ <span data-i18n="doctor">طبيب</span></button>
+                    <button class="qb" onclick="go('cerveau')">🧠 <span data-i18n="brain">مخ</span></button>
+                    <button class="qb" onclick="go('coeur')">❤️ <span data-i18n="heart">قلب</span></button>
+                    <button class="qb" onclick="go('infirmier')">🩺 <span data-i18n="nurse">ممرض</span></button>
+                    <button class="qb" onclick="go('uterus')">🫄 <span data-i18n="uterus">رحم</span></button>
+                    <button class="qb" onclick="go('bras')">💪 <span data-i18n="arm">ذراع</span></button>
+                    <button class="qb" onclick="go('bouche')">👄 <span data-i18n="mouth">فم</span></button>
+                    <button class="qb" onclick="go('hopital cerveau')">🏥🧠 <span data-i18n="phrase">جملة</span></button>
+                    <button class="qb" onclick="go('medecin infirmier')">👨‍⚕️🩺 <span data-i18n="phrase">جملة</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 2: Video + Pose Overlay -->
+        <div class="panel">
+            <span class="label lv">📹 <span data-i18n="video_pose">فيديو + وضعية</span></span>
+            <h2 data-i18n="dict_video">فيديو القاموس</h2>
+            <div class="vid-wrap">
+                <video id="vidPlayer" playsinline></video>
+                <canvas id="poseCanvas"></canvas>
+                <div id="vidPH" class="vid-ph">
+                    <span class="ic">📹</span>
+                    <p data-i18n="vid_pose_desc">فيديو الإشارة + تتبع الوضعية</p>
+                </div>
+            </div>
+            <div class="ctrl-bar">
+                <button id="prevBtn" class="cb" disabled>⏮ <span data-i18n="btn_prev">إلّي قبل</span></button>
+                <button id="pauseBtn" class="cb" disabled>⏸ <span data-i18n="btn_pause">وقّف</span></button>
+                <button id="nextBtn" class="cb" disabled>⏭ <span data-i18n="btn_next">إلّي بعد</span></button>
+                <button id="stopBtn" class="cb" disabled>⏹ <span data-i18n="btn_stop">أوقف</span></button>
+            </div>
+            <div id="animInd" class="anim-ind hid">
+                <span data-i18n="sign_label">إشارة :</span> <span id="curWord" class="cw">-</span>
+            </div>
+        </div>
+
+        <!-- COL 3: 3D Avatar -->
+        <div class="panel">
+            <span class="label la">🤖 <span data-i18n="avatar_mimic">أفاتار يقلّد</span></span>
+            <h2 data-i18n="avatar_imitates">أفاتار يقلّد الفيديو</h2>
+            <div id="avatar-container">
+                <div id="loadOv" class="load-ov">
+                    <div class="spin"></div>
+                    <p id="loadTxt" data-i18n="loading">يحمّل...</p>
+                </div>
+            </div>
+            <div class="ctrl-bar">
+                <button class="cb" onclick="camBody()">🧍 <span data-i18n="body">الجسم</span></button>
+                <button class="cb" onclick="camFace()">😊 <span data-i18n="face">الوجه</span></button>
+                <button class="cb" onclick="camBody()">📷 <span data-i18n="reset">رجّع</span></button>
+            </div>
+            <div id="poseBadge" class="pose-badge off">
+                <span class="dot"></span> <span id="poseLabel" data-i18n="pose_loading">الوضعية: يحمّل...</span>
+            </div>
+        </div>
+    </div>
+    <!-- ===== CAMERA RECOGNITION SECTION (hidden by default) ===== -->
+    <div id="cameraSection" class="main-layout hid">
+        <!-- CAM COL 1: Controls + Guide -->
+        <div class="panel">
+            <h2>🖐️ <span data-i18n="controls">أدوات التحكم</span></h2>
+            <button id="startCamBtn" class="btn btn-p" style="width:100%;margin-bottom:8px" onclick="startWebcam()">📷 <span data-i18n="start_camera">ابدأ الكاميرا</span></button>
+            <button id="stopCamBtn" class="btn btn-s" style="width:100%;margin-bottom:8px" disabled onclick="stopWebcam()">⏹ <span data-i18n="stop_camera">وقّف</span></button>
+            <button class="btn btn-s" style="width:100%" onclick="camClearAll()">🗑️ <span data-i18n="clear_all">امسح الكل</span></button>
+            <div id="camStatus" class="status info" style="margin-top:8px" data-i18n="click_start">اضغط "ابدأ" باش تبدأ</div>
+            <div style="margin-top:12px">
+                <h3 style="font-size:.88rem;color:var(--primary);margin-bottom:6px">📖 <span data-i18n="gesture_guide">دليل الإشارات</span></h3>
+                <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:6px" data-i18n="hold_gesture">خلّي الإشارة ~1 ثانية باش تتأكد</p>
+                <div class="cam-guide">
+                    <div class="cam-guide-item" data-i18n-html="guide_open_palm">✨ كف مفتوح → <strong>أهلا</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_thumbs_up">👍 صباع لفوق → <strong>إيه / شكرا</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_thumbs_down">👎 صباع لتحت → <strong>لا</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_fist">✊ كف مسكّر → <strong>يوجعني</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_pointing_up">☝️ صباع مرفوع → <strong>انتباه</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_peace">✌️ V → <strong>زوز / سلام</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_ok">👌 OK → <strong>ماشي مشكل</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_phone">🤙 تيليفون → <strong>أعيّط</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_love">🤟 ILY → <strong>نحبّك</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_three">3️⃣ 3 صوابع → <strong>طبيب</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_four">4️⃣ 4 صوابع → <strong>سبيطار</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_five">🖐️ 5 صوابع → <strong>خمسة / وقّف</strong></div>
+                    <div class="cam-guide-item" data-i18n-html="guide_gun">👉 مسدّس → <strong>تلقيح</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAM COL 2: Camera Feed -->
+        <div class="panel">
+            <span class="label lv">📷 <span data-i18n="cam_live">كاميرا مباشرة</span></span>
+            <h2 data-i18n="gesture_recognition">التعرف على الإشارات</h2>
+            <div class="cam-wrap">
+                <video id="camVideo" autoplay playsinline muted></video>
+                <canvas id="camCanvas"></canvas>
+                <div id="camPH" class="vid-ph">
+                    <span class="ic">📷</span>
+                    <p data-i18n="click_start_cam">اضغط "ابدأ" باش تشغّل الكاميرا</p>
+                </div>
+                <div id="camOverlay" class="cam-overlay hid">
+                    <span id="camGestureLabel"></span>
+                    <span id="camConfidence" class="conf"></span>
+                </div>
+                <div id="camProgress" class="cam-progress hid">
+                    <div id="camProgressBar" class="cam-progress-bar"></div>
+                </div>
+            </div>
+            <div id="camDetection" class="cam-detection" style="margin-top:8px">
+                <div class="cam-det-label" data-i18n="gesture_detected">الإشارة المكتشفة</div>
+                <div id="camDetectedGesture" class="cam-det-value" data-i18n="waiting">— يستنّى —</div>
+                <div class="cam-det-label" data-i18n="matching_word">الكلمة الموافقة</div>
+                <div id="camDetectedWord" class="cam-det-word">—</div>
+            </div>
+        </div>
+
+        <!-- CAM COL 3: Results -->
+        <div class="panel">
+            <span class="label la">📝 <span data-i18n="result">النتيجة</span></span>
+            <h2 data-i18n="built_sentence">الجملة المبنية</h2>
+            <div id="camSentence" class="cam-sentence">
+                <span class="cam-empty" data-i18n="words_appear_here">الكلمات المعروفة تظهر هوني...</span>
+            </div>
+            <div class="btn-row" style="margin-top:8px">
+                <button id="camSpeakBtn" class="btn btn-p" disabled onclick="camSpeak()">🔊 <span data-i18n="btn_read">اقرأ</span></button>
+                <button id="camCopyBtn" class="btn btn-s" disabled onclick="camCopy()">📋 <span data-i18n="btn_copy">انسخ</span></button>
+                <button class="btn btn-s" onclick="camClearSentence()">🗑️ <span data-i18n="btn_empty">فرّغ</span></button>
+            </div>
+            <div style="margin-top:12px">
+                <h3 style="font-size:.88rem;color:var(--primary);margin-bottom:6px">📜 <span data-i18n="history">السجل</span></h3>
+                <div id="camHistory" class="cam-history">
+                    <p style="color:var(--text-muted);font-style:italic;font-size:.8rem" data-i18n="no_gesture_detected">ما تكشفت حتّى إشارة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer data-i18n="footer">&copy; 2026 - قاموس طبي بلغة الإشارة التونسية - مشروع هاكاثون</footer>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+var scene, camera, renderer, controls, clock;
+var avatar = null, mixer = null, avatarBones = {};
+var builtInAnims = {};
+var currentAction = null;
+
+// MediaPipe
+var poseDetector = null, poseReady = false, poseTracking = false;
+var faceDetector = null, faceReady = false;
+var handsDetector = null, handsReady = false;
+var processingFrame = false, processingFace = false, processingHands = false;
+var PROCESS_INTERVAL = 60; // ms between pose detections (~16fps)
+var lastProcessTime = 0;
+var lastHandsData = { left: null, right: null }; // Store hand landmarks
+
+// Playback
+var videoQueue = [], currentIdx = -1, playing = false, paused = false;
+
+// DOM
+var cEl = document.getElementById('avatar-container');
+var loadOv = document.getElementById('loadOv');
+var loadTxt = document.getElementById('loadTxt');
+var stBar = document.getElementById('statusBar');
+var qSec = document.getElementById('qSec');
+var qList = document.getElementById('qList');
+var animInd = document.getElementById('animInd');
+var curWord = document.getElementById('curWord');
+var tInput = document.getElementById('textInput');
+var transBtn = document.getElementById('translateBtn');
+var micBtn = document.getElementById('micBtn');
+var clearBtn = document.getElementById('clearBtn');
+var prevBtn = document.getElementById('prevBtn');
+var pauseBtn = document.getElementById('pauseBtn');
+var nextBtn = document.getElementById('nextBtn');
+var stopBtn = document.getElementById('stopBtn');
+var vidPlayer = document.getElementById('vidPlayer');
+var vidPH = document.getElementById('vidPH');
+var poseCanvas = document.getElementById('poseCanvas');
+var poseCtx = poseCanvas.getContext('2d');
+var poseBadge = document.getElementById('poseBadge');
+var poseLabel = document.getElementById('poseLabel');
+
+// Pose connections for drawing skeleton
+var POSE_CONNS = [
+    [11,12],[11,13],[13,15],[12,14],[14,16],
+    [11,23],[12,24],[23,24],
+    [23,25],[25,27],[24,26],[26,28],
+    [15,17],[15,19],[16,18],[16,20],
+    [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10]
+];
+
+// ============================================================
+// THREE.JS SCENE
+// ============================================================
+function initScene() {
+    scene = new THREE.Scene();
+    // Gradient background using a simple sky sphere
+    scene.background = new THREE.Color(0xf0ebe4);
+    scene.fog = new THREE.Fog(0xf0ebe4, 8, 20);
+
+    var aspect = cEl.clientWidth / cEl.clientHeight;
+    camera = new THREE.PerspectiveCamera(30, aspect, 0.1, 100);
+    camera.position.set(0, 1.0, 4.0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(cEl.clientWidth, cEl.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.5;
+    renderer.physicallyCorrectLights = true;
+    cEl.appendChild(renderer.domElement);
+
+    // Studio-style 3-point lighting
+    scene.add(new THREE.AmbientLight(0xdce1f0, 0.6));
+    // Key light (front-right, warm)
+    var key = new THREE.DirectionalLight(0xfff5e0, 1.2);
+    key.position.set(2, 4, 5); key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.bias = -0.0001;
+    key.shadow.camera.near = 0.1; key.shadow.camera.far = 20;
+    key.shadow.camera.left = -3; key.shadow.camera.right = 3;
+    key.shadow.camera.top = 3; key.shadow.camera.bottom = -1;
+    scene.add(key);
+    // Fill light (front-left, cool)
+    var fill = new THREE.DirectionalLight(0xc8d8ff, 0.5);
+    fill.position.set(-3, 2, 3); scene.add(fill);
+    // Rim/back light (behind, subtle)
+    var rim = new THREE.DirectionalLight(0xffffff, 0.4);
+    rim.position.set(0, 3, -4); scene.add(rim);
+    // Top light
+    var top = new THREE.DirectionalLight(0xffffff, 0.3);
+    top.position.set(0, 6, 0); scene.add(top);
+
+    // Ground — elegant reflective circle
+    var gnd = new THREE.Mesh(
+        new THREE.CircleGeometry(4, 64),
+        new THREE.MeshStandardMaterial({ color: 0xddd5cc, roughness: 0.7, metalness: 0.05 })
+    );
+    gnd.rotation.x = -Math.PI / 2; gnd.receiveShadow = true;
+    scene.add(gnd);
+    // Subtle grid
+    var grid = new THREE.GridHelper(8, 16, 0xc5bdb4, 0xd5cec6);
+    grid.material.opacity = 0.15; grid.material.transparent = true;
+    scene.add(grid);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.85, 0);
+    controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.maxDistance = 5; controls.minDistance = 0.8;
+    controls.maxPolarAngle = Math.PI / 1.6;
+    controls.update();
+
+    clock = new THREE.Clock();
+    window.addEventListener('resize', onResize);
+    renderLoop();
+}
+
+function renderLoop() {
+    requestAnimationFrame(renderLoop);
+    var dt = clock.getDelta();
+    if (mixer && !poseTracking) mixer.update(dt);
+    // Subtle breathing animation when idle (no pose tracking & no built-in anim)
+    if (avatar && !poseTracking && Object.keys(builtInAnims).length === 0 && avatarBones.spine) {
+        var t = clock.elapsedTime;
+        var breathe = Math.sin(t * 1.5) * 0.008;
+        avatar.position.y += breathe;
+    }
+    if (controls) controls.update();
+    renderer.render(scene, camera);
+}
+
+function onResize() {
+    if (!cEl || !camera || !renderer) return;
+    camera.aspect = cEl.clientWidth / cEl.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(cEl.clientWidth, cEl.clientHeight);
+}
+
+var avatarHeight = 1.8; // updated after model loads
+function camBody() { camera.position.set(0, avatarHeight*0.5, avatarHeight*1.8); controls.target.set(0, avatarHeight*0.5, 0); controls.update(); }
+function camFace() { camera.position.set(0, avatarHeight*0.85, avatarHeight*0.6); controls.target.set(0, avatarHeight*0.8, 0); controls.update(); }
+
+// ============================================================
+// LOAD AVATAR
+// ============================================================
+function loadAvatar() {
+    loadTxt.textContent = I18N.t('init_3d');
+    if (typeof THREE === 'undefined') { loadTxt.textContent = I18N.t('err_threejs'); console.error('THREE not defined'); return; }
+    if (typeof THREE.GLTFLoader === 'undefined') { loadTxt.textContent = I18N.t('err_gltf'); console.error('GLTFLoader not defined'); return; }
+    console.log('Three.js r' + THREE.REVISION);
+    console.log('GLTFLoader available:', typeof THREE.GLTFLoader);
+
+    fetch('/api/avatar/config')
+        .then(function(r) { 
+            console.log('Config response:', r.status); 
+            return r.json(); 
+        })
+        .then(function(config) {
+            console.log('Avatar config received:', config);
+            console.log('Model URL:', config.model_url);
+            loadTxt.textContent = I18N.t('downloading_robot');
+            var loader = new THREE.GLTFLoader();
+            console.log('GLTFLoader created, loading model...');
+            loader.load(config.model_url,
+            function(gltf) {
+                avatar = gltf.scene;
+                var sc = config.scale || 1;
+                avatar.scale.set(sc, sc, sc);
+
+                // Enhance materials; hide accessories (earrings, necklace, glasses etc.)
+                var meshNames = [];
+                avatar.traverse(function(ch) {
+                    if (ch.isMesh) {
+                        meshNames.push(ch.name);
+                        ch.castShadow = true; ch.receiveShadow = true;
+                        ch.frustumCulled = false;
+                        // Hide accessories: anything not body/skin/hair/eyes related
+                        var n = ch.name.toLowerCase();
+                        if (n.indexOf('accessor') !== -1 || n.indexOf('earring') !== -1 ||
+                            n.indexOf('necklac') !== -1 || n.indexOf('glass') !== -1 ||
+                            n.indexOf('bracelet') !== -1 || n.indexOf('ring') !== -1 ||
+                            n.indexOf('jewel') !== -1 || n.indexOf('hat') !== -1 ||
+                            n.indexOf('cap') !== -1) {
+                            ch.visible = false;
+                        }
+                        var mats = Array.isArray(ch.material) ? ch.material : [ch.material];
+                        mats.forEach(function(m) {
+                            if (m.metalness !== undefined) m.metalness = Math.min(m.metalness, 0.1);
+                            if (m.roughness !== undefined) m.roughness = Math.max(m.roughness, 0.45);
+                            m.needsUpdate = true;
+                        });
+                    }
+                });
+                console.log('Mesh names:', meshNames);
+                scene.add(avatar);
+
+                // Auto-center: compute bounding box and adjust
+                var box = new THREE.Box3().setFromObject(avatar);
+                var size = box.getSize(new THREE.Vector3());
+                var center = box.getCenter(new THREE.Vector3());
+                console.log('Avatar bounds: size=', size, 'center=', center);
+                // Shift so feet are at y=0
+                avatar.position.y -= box.min.y;
+                // Adjust camera to fit the avatar
+                var h = size.y;
+                avatarHeight = h;
+                camera.position.set(0, h * 0.5, h * 1.8);
+                controls.target.set(0, h * 0.5, 0);
+                controls.update();
+
+                // Animation mixer + built-in anims (Xbot may not have any)
+                mixer = new THREE.AnimationMixer(avatar);
+                if (gltf.animations && gltf.animations.length > 0) {
+                    gltf.animations.forEach(function(clip) {
+                        builtInAnims[clip.name] = mixer.clipAction(clip);
+                        console.log('Anim: "' + clip.name + '" (' + clip.duration.toFixed(1) + 's)');
+                    });
+                }
+                mixer.addEventListener('finished', function() {});
+
+                // Discover bones
+                discoverBones();
+
+                // Discover morph targets for facial expressions
+                discoverMorphTargets();
+
+                // Start idle (or just stand)
+                if (builtInAnims['Idle']) playBuiltIn('Idle', true);
+                loadOv.classList.add('hid');
+                var animCount = gltf.animations ? gltf.animations.length : 0;
+                showSt(I18N.t('avatar_loaded'), 'ok');
+            },
+            function(p) {
+                var t = p.total > 0 ? Math.round(p.loaded / p.total * 100) + '%' : Math.round(p.loaded / 1024) + 'KB';
+                loadTxt.textContent = I18N.t('loading_progress') + t;
+                console.log('Loading progress:', t, 'loaded:', p.loaded, 'total:', p.total);
+            },
+            function(err) {
+                loadTxt.textContent = I18N.t('err_loading_model');
+                console.error('GLTFLoader error:', err);
+                console.error('Error stack:', err.stack);
+            }
+        );
+    }).catch(function(err) {
+        loadTxt.textContent = I18N.t('err_config') + err.message;
+        console.error('Config fetch error:', err);
+        console.error('Error stack:', err.stack);
+    });
+}
+
+// ============================================================
+// BONE DISCOVERY
+// ============================================================
+function discoverBones() {
+    if (!avatar) return;
+    var allBones = [];
+    avatar.traverse(function(obj) { if (obj.isBone) allBones.push(obj); });
+    console.log('All bones:', allBones.map(function(b) { return b.name; }));
+
+    function find(patterns) {
+        for (var i = 0; i < patterns.length; i++) {
+            var p = patterns[i].toLowerCase();
+            for (var j = 0; j < allBones.length; j++) {
+                if (allBones[j].name.toLowerCase().indexOf(p) !== -1) return allBones[j];
+            }
+        }
+        return null;
+    }
+
+    // Mixamo skeleton naming: mixamorigLeftArm, mixamorigLeftForeArm, etc.
+    // Also support generic naming as fallback
+    avatarBones = {
+        hips: find(['mixamorigHips', 'Hips', 'hips']),
+        spine: find(['mixamorigSpine2', 'mixamorigSpine1', 'mixamorigSpine', 'Spine2', 'Spine1', 'Spine']),
+        neck: find(['mixamorigNeck', 'Neck', 'neck']),
+        head: find(['mixamorigHead', 'Head', 'head']),
+        leftShoulder: find(['mixamorigLeftShoulder', 'LeftShoulder']),
+        leftUpperArm: find(['mixamorigLeftArm', 'LeftArm', 'ArmL']),
+        leftForeArm: find(['mixamorigLeftForeArm', 'LeftForeArm', 'ForeArmL']),
+        leftHand: find(['mixamorigLeftHand', 'LeftHand', 'HandL']),
+        leftHandIndex1: find(['mixamorigLeftHandIndex1', 'LeftHandIndex1']),
+        leftHandIndex2: find(['mixamorigLeftHandIndex2', 'LeftHandIndex2']),
+        leftHandMiddle1: find(['mixamorigLeftHandMiddle1', 'LeftHandMiddle1']),
+        leftHandThumb1: find(['mixamorigLeftHandThumb1', 'LeftHandThumb1']),
+        leftHandPinky1: find(['mixamorigLeftHandPinky1', 'LeftHandPinky1']),
+        rightShoulder: find(['mixamorigRightShoulder', 'RightShoulder']),
+        rightUpperArm: find(['mixamorigRightArm', 'RightArm', 'ArmR']),
+        rightForeArm: find(['mixamorigRightForeArm', 'RightForeArm', 'ForeArmR']),
+        rightHand: find(['mixamorigRightHand', 'RightHand', 'HandR']),
+        rightHandIndex1: find(['mixamorigRightHandIndex1', 'RightHandIndex1']),
+        rightHandIndex2: find(['mixamorigRightHandIndex2', 'RightHandIndex2']),
+        rightHandMiddle1: find(['mixamorigRightHandMiddle1', 'RightHandMiddle1']),
+        rightHandThumb1: find(['mixamorigRightHandThumb1', 'RightHandThumb1']),
+        rightHandPinky1: find(['mixamorigRightHandPinky1', 'RightHandPinky1']),
+    };
+
+    // Store rest-pose quaternions
+    avatarBones._rest = {};
+    Object.keys(avatarBones).forEach(function(k) {
+        if (k !== '_rest' && avatarBones[k]) {
+            avatarBones._rest[k] = avatarBones[k].quaternion.clone();
+        }
+    });
+
+    var found = Object.keys(avatarBones).filter(function(k) { return k !== '_rest' && avatarBones[k]; });
+    console.log('Bones found:', found.map(function(k) { return k + '=' + avatarBones[k].name; }));
+    showSt(I18N.t('skeleton_bones').replace('{n}', found.length), 'ok');
+
+    // Compute rest directions AFTER storing rest quats
+    computeRestDirs();
+}
+
+// ============================================================
+// FACE MESH for grimaces
+// ============================================================
+var faceMorphMeshes = []; // meshes with morph targets
+var faceMorphMap = {};    // name -> { meshIdx, morphIdx }
+
+function discoverMorphTargets() {
+    faceMorphMeshes = [];
+    faceMorphMap = {};
+    if (!avatar) return;
+    avatar.traverse(function(ch) {
+        if (ch.isMesh && ch.morphTargetInfluences && ch.morphTargetInfluences.length > 0) {
+            var idx = faceMorphMeshes.length;
+            faceMorphMeshes.push(ch);
+            if (ch.morphTargetDictionary) {
+                Object.keys(ch.morphTargetDictionary).forEach(function(name) {
+                    faceMorphMap[name.toLowerCase()] = { meshIdx: idx, morphIdx: ch.morphTargetDictionary[name] };
+                });
+            }
+        }
+    });
+    console.log('Morph targets found:', Object.keys(faceMorphMap));
+}
+
+function setMorph(name, value) {
+    var entry = faceMorphMap[name.toLowerCase()];
+    if (!entry) return;
+    var mesh = faceMorphMeshes[entry.meshIdx];
+    if (mesh && mesh.morphTargetInfluences) {
+        var cur = mesh.morphTargetInfluences[entry.morphIdx] || 0;
+        mesh.morphTargetInfluences[entry.morphIdx] = cur + (value - cur) * 0.3;
+    }
+}
+
+function resetMorphs() {
+    faceMorphMeshes.forEach(function(mesh) {
+        if (mesh.morphTargetInfluences) {
+            for (var i = 0; i < mesh.morphTargetInfluences.length; i++) {
+                mesh.morphTargetInfluences[i] *= 0.9; // fade out
+            }
+        }
+    });
+}
+
+function initFaceMesh() {
+    // Temporarily disabled to avoid WASM conflicts with Pose
+    console.log('ℹ️ MediaPipe FaceMesh disabled (focusing on body pose tracking)');
+    return;
+    
+    /* DISABLED - causing WASM conflicts
+    if (typeof FaceMesh === 'undefined') {
+        console.warn('MediaPipe FaceMesh not loaded');
+        return;
+    }
+    try {
+        faceDetector = new FaceMesh({
+            locateFile: function(file) {
+                return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/' + file;
+            }
+        });
+        faceDetector.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        faceDetector.onResults(onFaceResults);
+        faceDetector.initialize().then(function() {
+            faceReady = true;
+            console.log('FaceMesh ready!');
+        }).catch(function(err) {
+            console.warn('FaceMesh init error:', err);
+        });
+    } catch(e) {
+        console.warn('FaceMesh error:', e);
+    }
+    */
+}
+
+function onFaceResults(results) {
+    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        resetMorphs();
+        return;
+    }
+    var fl = results.multiFaceLandmarks[0];
+    // Compute facial expression metrics from landmark distances
+    // Mouth open: distance between upper lip (13) and lower lip (14)
+    var mouthOpen = dist2d(fl[13], fl[14]) / dist2d(fl[0], fl[17]) * 3;
+    mouthOpen = Math.min(Math.max(mouthOpen - 0.15, 0) * 2.5, 1);
+
+    // Mouth wide (smile): distance between mouth corners (61, 291)
+    var mouthWide = dist2d(fl[61], fl[291]) / dist2d(fl[0], fl[17]) * 2;
+    var smile = Math.min(Math.max(mouthWide - 0.8, 0) * 3, 1);
+
+    // Eyebrow raise: distance from eyebrow to eye center
+    var browRaiseL = dist2d(fl[70], fl[159]) / dist2d(fl[0], fl[17]);
+    var browRaiseR = dist2d(fl[300], fl[386]) / dist2d(fl[0], fl[17]);
+    var browRaise = Math.min(Math.max((browRaiseL + browRaiseR) * 2 - 0.6, 0) * 2, 1);
+
+    // Eye blink: ratio of eye height to width
+    var eyeOpenL = dist2d(fl[159], fl[145]) / dist2d(fl[33], fl[133]);
+    var eyeOpenR = dist2d(fl[386], fl[374]) / dist2d(fl[362], fl[263]);
+    var blinkL = eyeOpenL < 0.15 ? 1 : 0;
+    var blinkR = eyeOpenR < 0.15 ? 1 : 0;
+
+    // Apply to morph targets (try common naming conventions)
+    // Mouth open
+    setMorph('jawopen', mouthOpen);
+    setMorph('mouthopen', mouthOpen);
+    setMorph('jaw_open', mouthOpen);
+    setMorph('viseme_aa', mouthOpen * 0.7);
+    // Smile
+    setMorph('mouthsmile', smile);
+    setMorph('mouthsmileleft', smile);
+    setMorph('mouthsmileright', smile);
+    setMorph('smile', smile);
+    // Brow
+    setMorph('browouterup', browRaise);
+    setMorph('browouterupleft', browRaise);
+    setMorph('browouterupright', browRaise);
+    setMorph('browraise', browRaise);
+    // Blink
+    setMorph('eyeblinkleft', blinkL);
+    setMorph('eyeblinkright', blinkR);
+    setMorph('blink_l', blinkL);
+    setMorph('blink_r', blinkR);
+}
+
+function dist2d(a, b) {
+    var dx = a.x - b.x, dy = a.y - b.y;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+
+// ============================================================
+// MEDIAPIPE HANDS for finger tracking
+// ============================================================
+function initHands() {
+    // Temporarily disabled to avoid WASM conflicts with Pose
+    console.log('ℹ️ MediaPipe Hands disabled (using Pose wrist/index/pinky landmarks instead)');
+    return;
+    
+    /* DISABLED - causing WASM conflicts
+    if (typeof Hands === 'undefined') {
+        console.warn('MediaPipe Hands not available');
+        return;
+    }
+    
+    try {
+        handsDetector = new Hands({
+            locateFile: function(file) {
+                return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/' + file;
+            }
+        });
+        
+        handsDetector.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        
+        handsDetector.onResults(onHandsResults);
+        
+        handsDetector.initialize().then(function() {
+            handsReady = true;
+            console.log('✋ MediaPipe Hands ready! (21 landmarks per hand)');
+        }).catch(function(err) {
+            console.warn('MediaPipe Hands init error:', err);
+        });
+    } catch(e) {
+        console.warn('MediaPipe Hands error:', e);
+    }
+    */
+}
+
+function onHandsResults(results) {
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        lastHandsData.left = null;
+        lastHandsData.right = null;
+        return;
+    }
+    
+    // Store hand landmarks for each detected hand
+    for (var i = 0; i < results.multiHandLandmarks.length; i++) {
+        var handLandmarks = results.multiHandLandmarks[i];
+        var handedness = results.multiHandedness[i];
+        
+        if (handedness && handedness.label) {
+            // Note: MediaPipe returns mirror view, so "Left" is actually right hand
+            if (handedness.label === 'Left') {
+                lastHandsData.right = handLandmarks;
+            } else {
+                lastHandsData.left = handLandmarks;
+            }
+        }
+    }
+}
+
+// ============================================================
+// MEDIAPIPE POSE
+// ============================================================
+function initMediaPipe() {
+    if (typeof Pose === 'undefined') {
+        console.warn('MediaPipe Pose not available');
+        poseBadge.className = 'pose-badge off';
+        poseLabel.textContent = I18N.t('pose_unavailable');
+        return;
+    }
+
+    poseLabel.textContent = I18N.t('pose_init');
+
+    try {
+        poseDetector = new Pose({
+            locateFile: function(file) {
+                return 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/' + file;
+            }
+        });
+
+        poseDetector.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        poseDetector.onResults(onPoseResults);
+
+        poseDetector.initialize().then(function() {
+            poseReady = true;
+            poseBadge.className = 'pose-badge active';
+            poseLabel.textContent = I18N.t('pose_ready');
+            console.log('✅ MediaPipe Pose ready! (33 landmarks)');
+            console.log('   📍 Tracking: shoulders, elbows, wrists, hips, knees, ankles');
+            console.log('   👉 Hand points: wrists (15,16), index (19,20), pinky (17,18), thumbs (21,22)');
+            console.log('   🎯 Body: nose, eyes, ears, mouth, spine, hips');
+        }).catch(function(err) {
+            console.error('MediaPipe init error:', err);
+            poseBadge.className = 'pose-badge off';
+            poseLabel.textContent = I18N.t('pose_error');
+        });
+    } catch (err) {
+        console.error('MediaPipe error:', err);
+        poseBadge.className = 'pose-badge off';
+        poseLabel.textContent = I18N.t('pose_error');
+    }
+}
+
+// ============================================================
+// POSE TRACKING LOOP
+// ============================================================
+function startPoseLoop() {
+    poseTracking = true;
+    poseBadge.className = 'pose-badge active';
+    poseLabel.textContent = I18N.t('pose_tracking');
+    console.log('✅ startPoseLoop: Tracking started, poseReady=' + poseReady + ', vidPlayer.src=' + vidPlayer.src.substring(vidPlayer.src.lastIndexOf('/') + 1));
+    requestAnimationFrame(poseFrame);
+}
+
+function stopPoseLoop() {
+    poseTracking = false;
+    poseBadge.className = 'pose-badge active';
+    poseLabel.textContent = I18N.t('pose_waiting');
+    // Reset bones to rest pose
+    resetBonesToRest();
+    // No need to resume idle - Xbot has no built-in animations
+}
+
+var _poseFrameCount = 0;
+function poseFrame() {
+    if (!poseTracking || !poseReady) return;
+    if (vidPlayer.paused || vidPlayer.ended) {
+        // Video stopped, continue loop but skip processing
+        requestAnimationFrame(poseFrame);
+        return;
+    }
+    if (processingFrame) {
+        requestAnimationFrame(poseFrame);
+        return;
+    }
+
+    var now = performance.now();
+    if (now - lastProcessTime < PROCESS_INTERVAL) {
+        requestAnimationFrame(poseFrame);
+        return;
+    }
+    lastProcessTime = now;
+
+    // Only process if video has valid dimensions
+    if (vidPlayer.videoWidth > 0 && vidPlayer.videoHeight > 0) {
+        processingFrame = true;
+        if (_poseFrameCount === 0) {
+            console.log('🎬 poseFrame: Sending first frame to MediaPipe, video=' + vidPlayer.videoWidth + 'x' + vidPlayer.videoHeight);
+        }
+        _poseFrameCount++;
+        poseDetector.send({ image: vidPlayer }).then(function() {
+            processingFrame = false;
+        }).catch(function(err) {
+            console.error('Pose send error:', err);
+            processingFrame = false;
+        });
+
+        // Removed FaceMesh and Hands processing to avoid WASM conflicts
+        // MediaPipe Pose provides: wrists (15,16), index fingers (19,20), pinkies (17,18)
+    } else {
+        if (_poseFrameCount < 3) {
+            console.warn('⚠️ poseFrame: Invalid video dimensions', vidPlayer.videoWidth, vidPlayer.videoHeight);
+        }
+    }
+
+    requestAnimationFrame(poseFrame);
+}
+
+// ============================================================
+// POSE RESULTS → DRAW + APPLY TO AVATAR
+// ============================================================
+var _onPoseResultsCount = 0;
+function onPoseResults(results) {
+    // Draw video + pose overlay on canvas
+    var w = vidPlayer.videoWidth || 640;
+    var h = vidPlayer.videoHeight || 480;
+    poseCanvas.width = poseCanvas.clientWidth;
+    poseCanvas.height = poseCanvas.clientHeight;
+
+    poseCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
+    poseCtx.drawImage(vidPlayer, 0, 0, poseCanvas.width, poseCanvas.height);
+
+    if (results.poseLandmarks) {
+        // Draw skeleton on canvas
+        drawPoseSkeleton(results.poseLandmarks);
+        poseLabel.textContent = I18N.t('pose_active');
+        if (_onPoseResultsCount === 0) {
+            console.log('🎯 onPoseResults: First pose detected, landmarks=' + results.poseLandmarks.length);
+        }
+    } else {
+        if (_onPoseResultsCount < 3) {
+            console.warn('⚠️ onPoseResults: No poseLandmarks detected');
+        }
+    }
+    _onPoseResultsCount++;
+
+    // Apply to avatar bones using WORLD landmarks (3D coordinates)
+    if (results.poseWorldLandmarks) {
+        applyPoseToAvatar(results.poseWorldLandmarks);
+    } else {
+        if (_poseDebugCount < 5) { console.warn('No poseWorldLandmarks in results'); _poseDebugCount++; }
+    }
+}
+
+function drawPoseSkeleton(landmarks) {
+    var w = poseCanvas.width;
+    var h = poseCanvas.height;
+
+    // Draw connections
+    poseCtx.strokeStyle = '#00FF44';
+    poseCtx.lineWidth = 2;
+    POSE_CONNS.forEach(function(pair) {
+        var a = landmarks[pair[0]];
+        var b = landmarks[pair[1]];
+        if (a && b && a.visibility > 0.3 && b.visibility > 0.3) {
+            poseCtx.beginPath();
+            poseCtx.moveTo(a.x * w, a.y * h);
+            poseCtx.lineTo(b.x * w, b.y * h);
+            poseCtx.stroke();
+        }
+    });
+
+    // Draw points
+    landmarks.forEach(function(lm, i) {
+        if (lm.visibility > 0.3) {
+            // Arms and upper body in red, others in blue
+            poseCtx.fillStyle = (i >= 11 && i <= 22) ? '#FF4444' : '#4488FF';
+            poseCtx.beginPath();
+            poseCtx.arc(lm.x * w, lm.y * h, 3, 0, Math.PI * 2);
+            poseCtx.fill();
+        }
+    });
+}
+
+// ============================================================
+// TRACKING POSE - APPROCHE SIMPLE ANGLE DIRECT
+// ============================================================
+var _poseDebugCount = 0;
+var SMOOTH_ALPHA = 0.85;
+
+// BUFFER TEMPOREL
+var poseHistory = [];
+var POSE_HISTORY_SIZE = 2; // Réduire à 2 pour plus de réactivité
+
+function addPoseToHistory(landmarks) {
+    var cloned = [];
+    for (var i = 0; i < landmarks.length; i++) {
+        cloned.push({
+            x: landmarks[i].x,
+            y: landmarks[i].y,
+            z: landmarks[i].z,
+            visibility: landmarks[i].visibility
+        });
+    }
+    poseHistory.push(cloned);
+    if (poseHistory.length > POSE_HISTORY_SIZE) {
+        poseHistory.shift();
+    }
+}
+
+function getAveragedPose() {
+    if (poseHistory.length === 0) return null;
+    if (poseHistory.length === 1) return poseHistory[0];
+    
+    var averaged = [];
+    for (var i = 0; i < 33; i++) {
+        var sumX = 0, sumY = 0, sumZ = 0, sumVis = 0;
+        var count = 0;
+        
+        for (var f = 0; f < poseHistory.length; f++) {
+            if (poseHistory[f][i]) {
+                sumX += poseHistory[f][i].x;
+                sumY += poseHistory[f][i].y;
+                sumZ += poseHistory[f][i].z;
+                sumVis += poseHistory[f][i].visibility;
+                count++;
+            }
+        }
+        
+        if (count > 0) {
+            averaged[i] = {
+                x: sumX / count,
+                y: sumY / count,
+                z: sumZ / count,
+                visibility: sumVis / count
+            };
+        } else {
+            averaged[i] = { x: 0, y: 0, z: 0, visibility: 0 };
+        }
+    }
+    
+    return averaged;
+}
+
+function computeRestDirs() {
+    console.log('✅ Tracking simple avec buffer temporel activé');
+}
+
+function applyPoseToAvatar(wl) {
+    if (!avatar || !avatarBones.leftUpperArm) {
+        if (_poseDebugCount < 3) { console.warn('applyPose: no avatar'); _poseDebugCount++; }
+        return;
+    }
+
+    addPoseToHistory(wl);
+    var smoothedLandmarks = getAveragedPose();
+    if (!smoothedLandmarks) return;
+
+    if (mixer) {
+        Object.keys(builtInAnims).forEach(function(k) { builtInAnims[k].stop(); });
+    }
+
+    var VIS = 0.3;
+    function vis(i) { return smoothedLandmarks[i] && smoothedLandmarks[i].visibility > VIS; }
+    
+    // Conversion MediaPipe → Three.js (échelle plus grande pour mieux voir)
+    function lm(i) {
+        return new THREE.Vector3(
+            -smoothedLandmarks[i].x * 2,  // Miroir + échelle
+            smoothedLandmarks[i].y * 2,
+            smoothedLandmarks[i].z * 2
+        );
+    }
+
+    if (_poseDebugCount === 0) {
+        console.log('🎯 Tracking simplifié avec échelle x2');
+        console.log('   Landmarks détectés:');
+        console.log('   L11 (épaule):', vis(11), smoothedLandmarks[11]);
+        console.log('   L13 (coude):', vis(13), smoothedLandmarks[13]);
+        console.log('   L15 (poignet):', vis(15), smoothedLandmarks[15]);
+        if (avatarBones.leftUpperArm) {
+            console.log('   Os leftUpperArm existe:', avatarBones.leftUpperArm.name);
+            var worldPos = new THREE.Vector3();
+            avatarBones.leftUpperArm.getWorldPosition(worldPos);
+            console.log('   Position monde:', worldPos);
+        }
+        _poseDebugCount++;
+    }
+
+    // Fonction ultra-simple : calculer rotation entre deux vecteurs
+    function rotateBone(bone, fromIdx, toIdx) {
+        if (!bone || !vis(fromIdx) || !vis(toIdx)) return;
+        
+        // Direction cible dans l'espace monde
+        var dir = lm(toIdx).sub(lm(fromIdx)).normalize();
+        
+        // Axe Y négatif = direction par défaut des os Mixamo (vers le bas)
+        var axis = new THREE.Vector3(0, 1, 0);
+        
+        // Rotation pour aligner l'axe Y de l'os avec la direction cible
+        var quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(axis, dir);
+        
+        // IMPORTANT : Appliquer la rotation en espace local de l'os
+        // Sans tenir compte du parent (rotation absolue)
+        bone.quaternion.slerp(quaternion, SMOOTH_ALPHA);
+    }
+
+    // === BRAS GAUCHE ===
+    rotateBone(avatarBones.leftUpperArm, 11, 13);  // Épaule → Coude
+    rotateBone(avatarBones.leftForeArm, 13, 15);   // Coude → Poignet  
+    rotateBone(avatarBones.leftHand, 15, 17);      // Poignet → Index
+
+    // === BRAS DROIT ===
+    rotateBone(avatarBones.rightUpperArm, 12, 14); // Épaule → Coude
+    rotateBone(avatarBones.rightForeArm, 14, 16);  // Coude → Poignet
+    rotateBone(avatarBones.rightHand, 16, 18);     // Poignet → Index
+}
+
+function resetBonesToRest() {
+    if (!avatarBones._rest) return;
+    Object.keys(avatarBones._rest).forEach(function(k) {
+        if (avatarBones[k] && avatarBones._rest[k]) {
+            avatarBones[k].quaternion.copy(avatarBones._rest[k]);
+        }
+    });
+    _poseDebugCount = 0;
+    poseHistory = []; // Clear l'historique temporel
+    console.log('🔄 Reset des os + buffer temporel vidé');
+}
+
+// ============================================================
+// BUILT-IN ANIMATIONS (fallback when no pose tracking)
+// ============================================================
+function playBuiltIn(name, loop) {
+    var action = builtInAnims[name];
+    if (!action) return;
+    action.reset();
+    action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce);
+    action.clampWhenFinished = !loop;
+    if (currentAction && currentAction !== action) {
+        action.crossFadeFrom(currentAction, 0.4, true);
+    }
+    action.play();
+    currentAction = action;
+}
+
+// ============================================================
+// ============================================================
+// DIALECT GESTURE ANIMATIONS — make the avatar perform signs
+// ============================================================
+var gestureTimeline = null; // current gesture animation timeout chain
+var gestureActive = false;
+
+// Gesture primitives: each returns a target quaternion for bones
+// Angles in degrees, converted to radians inside
+function deg(d) { return d * Math.PI / 180; }
+
+// Set a bone's rotation via Euler angles (relative to rest pose)
+function setBoneEuler(boneName, rx, ry, rz, duration, delay) {
+    var bone = avatarBones[boneName];
+    if (!bone || !avatarBones._rest || !avatarBones._rest[boneName]) return;
+    var rest = avatarBones._rest[boneName].clone();
+    var delta = new THREE.Quaternion().setFromEuler(new THREE.Euler(deg(rx), deg(ry), deg(rz)));
+    var target = rest.clone().multiply(delta);
+    setTimeout(function() {
+        animateBoneTo(bone, target, duration || 500);
+    }, delay || 0);
+}
+
+function animateBoneTo(bone, targetQuat, duration) {
+    var start = bone.quaternion.clone();
+    var startTime = performance.now();
+    function step() {
+        if (!gestureActive) return;
+        var t = Math.min((performance.now() - startTime) / duration, 1);
+        t = t * t * (3 - 2 * t); // smoothstep
+        bone.quaternion.copy(start).slerp(targetQuat, t);
+        if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function resetAllBones(delay) {
+    setTimeout(function() {
+        if (!avatarBones._rest) return;
+        Object.keys(avatarBones._rest).forEach(function(k) {
+            if (avatarBones[k] && avatarBones._rest[k]) {
+                animateBoneTo(avatarBones[k], avatarBones._rest[k], 600);
+            }
+        });
+    }, delay || 0);
+}
+
+// Gesture library: maps sign action keywords to bone movements
+// Each gesture is a function that schedules bone movements
+var gestureLib = {
+    // WAVE: raise right hand and wave
+    'wave_right': function(dur) {
+        setBoneEuler('rightUpperArm', 0, 0, 70, 400, 0);      // raise upper arm
+        setBoneEuler('rightForeArm', -60, 0, 0, 400, 100);     // bend forearm
+        setBoneEuler('rightHand', 0, 30, 0, 300, 300);          // wave right
+        setBoneEuler('rightHand', 0, -30, 0, 300, 600);         // wave left
+        setBoneEuler('rightHand', 0, 30, 0, 300, 900);          // wave right
+        resetAllBones(dur || 1300);
+    },
+    // WAVE BOTH: raise both hands
+    'wave_both': function(dur) {
+        setBoneEuler('rightUpperArm', 0, 0, 70, 400, 0);
+        setBoneEuler('leftUpperArm', 0, 0, -70, 400, 0);
+        setBoneEuler('rightForeArm', -60, 0, 0, 400, 100);
+        setBoneEuler('leftForeArm', -60, 0, 0, 400, 100);
+        resetAllBones(dur || 1500);
+    },
+    // THUMBS UP right
+    'thumbs_up': function(dur) {
+        setBoneEuler('rightUpperArm', -30, 0, 40, 400, 0);
+        setBoneEuler('rightForeArm', -90, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // THUMBS UP both
+    'thumbs_up_both': function(dur) {
+        setBoneEuler('rightUpperArm', -30, 0, 40, 400, 0);
+        setBoneEuler('rightForeArm', -90, 0, 0, 400, 100);
+        setBoneEuler('leftUpperArm', -30, 0, -40, 400, 0);
+        setBoneEuler('leftForeArm', -90, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // THUMBS DOWN
+    'thumbs_down': function(dur) {
+        setBoneEuler('rightUpperArm', 20, 0, 30, 400, 0);
+        setBoneEuler('rightForeArm', -40, 0, 0, 300, 100);
+        resetAllBones(dur || 1000);
+    },
+    // HAND ON HEART (right hand on chest)
+    'hand_on_heart': function(dur) {
+        setBoneEuler('rightUpperArm', 20, -40, 40, 500, 0);
+        setBoneEuler('rightForeArm', -110, 0, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // HAND ON FOREHEAD
+    'hand_on_forehead': function(dur) {
+        setBoneEuler('rightUpperArm', -50, -20, 30, 500, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // HAND ON BELLY
+    'hand_on_belly': function(dur) {
+        setBoneEuler('rightUpperArm', 30, -30, 30, 500, 0);
+        setBoneEuler('rightForeArm', -100, 0, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // POINT FORWARD (index finger pointing)
+    'point_forward': function(dur) {
+        setBoneEuler('rightUpperArm', -10, 0, 30, 400, 0);
+        setBoneEuler('rightForeArm', -60, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // POINT UP (finger to sky)
+    'point_up': function(dur) {
+        setBoneEuler('rightUpperArm', 0, 0, 60, 400, 0);
+        setBoneEuler('rightForeArm', -100, 0, 0, 400, 100);
+        resetAllBones(dur || 1300);
+    },
+    // NOD YES (head nod)
+    'nod_yes': function(dur) {
+        setBoneEuler('head', 15, 0, 0, 300, 0);
+        setBoneEuler('head', -10, 0, 0, 300, 350);
+        setBoneEuler('head', 15, 0, 0, 300, 700);
+        resetAllBones(dur || 1200);
+    },
+    // SHAKE NO (head shake)
+    'shake_no': function(dur) {
+        setBoneEuler('head', 0, 20, 0, 250, 0);
+        setBoneEuler('head', 0, -20, 0, 250, 300);
+        setBoneEuler('head', 0, 20, 0, 250, 600);
+        setBoneEuler('head', 0, -20, 0, 250, 900);
+        resetAllBones(dur || 1300);
+    },
+    // SHRUG (raise both shoulders / arms)
+    'shrug': function(dur) {
+        setBoneEuler('leftUpperArm', 0, 0, -40, 400, 0);
+        setBoneEuler('rightUpperArm', 0, 0, 40, 400, 0);
+        setBoneEuler('leftForeArm', -70, 0, 0, 400, 100);
+        setBoneEuler('rightForeArm', -70, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // BOTH HANDS ON CHEST
+    'hands_on_chest': function(dur) {
+        setBoneEuler('rightUpperArm', 20, -40, 40, 500, 0);
+        setBoneEuler('rightForeArm', -110, 0, 0, 500, 100);
+        setBoneEuler('leftUpperArm', 20, 40, -40, 500, 0);
+        setBoneEuler('leftForeArm', -110, 0, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // SLEEP (hands near face)
+    'sleep': function(dur) {
+        setBoneEuler('rightUpperArm', -30, -30, 50, 500, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 500, 100);
+        setBoneEuler('leftUpperArm', -30, 30, -50, 500, 0);
+        setBoneEuler('leftForeArm', -130, 0, 0, 500, 100);
+        setBoneEuler('head', 20, 0, 15, 600, 200);
+        resetAllBones(dur || 1800);
+    },
+    // CROSS ARMS (X shape)
+    'cross_arms': function(dur) {
+        setBoneEuler('rightUpperArm', 10, -50, 50, 500, 0);
+        setBoneEuler('rightForeArm', -90, 0, 0, 500, 100);
+        setBoneEuler('leftUpperArm', 10, 50, -50, 500, 0);
+        setBoneEuler('leftForeArm', -90, 0, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // RAISE BOTH HANDS HIGH
+    'raise_both_high': function(dur) {
+        setBoneEuler('rightUpperArm', 0, 0, 120, 500, 0);
+        setBoneEuler('leftUpperArm', 0, 0, -120, 500, 0);
+        setBoneEuler('rightForeArm', -20, 0, 0, 400, 100);
+        setBoneEuler('leftForeArm', -20, 0, 0, 400, 100);
+        resetAllBones(dur || 1500);
+    },
+    // EAT (hand to mouth)
+    'eat': function(dur) {
+        setBoneEuler('rightUpperArm', -40, -20, 30, 400, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 400, 100);
+        setBoneEuler('rightHand', -20, 0, 0, 300, 200);
+        resetAllBones(dur || 1300);
+    },
+    // DRINK
+    'drink': function(dur) {
+        setBoneEuler('rightUpperArm', -30, -10, 20, 400, 0);
+        setBoneEuler('rightForeArm', -120, 30, 0, 400, 100);
+        setBoneEuler('head', 15, 0, 0, 400, 300);
+        resetAllBones(dur || 1300);
+    },
+    // PHONE (hand to ear)
+    'phone': function(dur) {
+        setBoneEuler('rightUpperArm', -20, -20, 50, 500, 0);
+        setBoneEuler('rightForeArm', -140, 0, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // WRITE
+    'write': function(dur) {
+        setBoneEuler('rightUpperArm', 30, -20, 20, 400, 0);
+        setBoneEuler('rightForeArm', -80, 0, 0, 400, 100);
+        setBoneEuler('rightHand', 0, 15, 0, 200, 300);
+        setBoneEuler('rightHand', 0, -15, 0, 200, 500);
+        setBoneEuler('rightHand', 0, 15, 0, 200, 700);
+        resetAllBones(dur || 1200);
+    },
+    // FLEX ARM (strength)
+    'flex_arm': function(dur) {
+        setBoneEuler('rightUpperArm', 0, 0, 70, 400, 0);
+        setBoneEuler('rightForeArm', -140, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // PRAY (both hands up)
+    'pray': function(dur) {
+        setBoneEuler('rightUpperArm', -40, 0, 50, 500, 0);
+        setBoneEuler('leftUpperArm', -40, 0, -50, 500, 0);
+        setBoneEuler('rightForeArm', -80, 0, 0, 400, 100);
+        setBoneEuler('leftForeArm', -80, 0, 0, 400, 100);
+        setBoneEuler('head', 15, 0, 0, 500, 200);
+        resetAllBones(dur || 1800);
+    },
+    // TOUCH CHEEK (mother sign)
+    'touch_cheek': function(dur) {
+        setBoneEuler('rightUpperArm', -40, -30, 40, 500, 0);
+        setBoneEuler('rightForeArm', -130, 20, 0, 500, 100);
+        resetAllBones(dur || 1400);
+    },
+    // TOUCH CHIN (father sign)
+    'touch_chin': function(dur) {
+        setBoneEuler('rightUpperArm', -40, -30, 30, 500, 0);
+        setBoneEuler('rightForeArm', -140, 10, 0, 500, 100);
+        resetAllBones(dur || 1400);
+    },
+    // CIRCLE HANDS
+    'circle_hands': function(dur) {
+        setBoneEuler('rightUpperArm', -10, 0, 40, 400, 0);
+        setBoneEuler('leftUpperArm', -10, 0, -40, 400, 0);
+        setBoneEuler('rightForeArm', -60, 30, 0, 400, 100);
+        setBoneEuler('leftForeArm', -60, -30, 0, 400, 100);
+        setBoneEuler('rightForeArm', -60, -30, 0, 400, 600);
+        setBoneEuler('leftForeArm', -60, 30, 0, 400, 600);
+        resetAllBones(dur || 1500);
+    },
+    // ROOF (house sign - hands form triangle)
+    'roof': function(dur) {
+        setBoneEuler('rightUpperArm', -30, 0, 60, 500, 0);
+        setBoneEuler('leftUpperArm', -30, 0, -60, 500, 0);
+        setBoneEuler('rightForeArm', -100, -30, 0, 500, 100);
+        setBoneEuler('leftForeArm', -100, 30, 0, 500, 100);
+        resetAllBones(dur || 1500);
+    },
+    // RELAX
+    'relax': function(dur) {
+        setBoneEuler('rightUpperArm', 10, 0, 15, 600, 0);
+        setBoneEuler('leftUpperArm', 10, 0, -15, 600, 0);
+        setBoneEuler('head', 10, 0, 0, 600, 100);
+        resetAllBones(dur || 1800);
+    },
+    // EYES (point at eyes)
+    'point_eyes': function(dur) {
+        setBoneEuler('rightUpperArm', -40, -20, 30, 400, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // EARS (point at ears)
+    'point_ears': function(dur) {
+        setBoneEuler('rightUpperArm', -20, -30, 50, 400, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 400, 100);
+        resetAllBones(dur || 1200);
+    },
+    // STETHOSCOPE sign (doctor)
+    'stethoscope': function(dur) {
+        setBoneEuler('rightUpperArm', -20, -30, 30, 500, 0);
+        setBoneEuler('rightForeArm', -100, 0, 0, 500, 100);
+        setBoneEuler('rightHand', -20, 0, 0, 400, 200);
+        // Move to chest
+        setBoneEuler('rightUpperArm', 20, -40, 40, 500, 600);
+        setBoneEuler('rightForeArm', -110, 0, 0, 500, 700);
+        resetAllBones(dur || 1800);
+    },
+    // HEAD PAIN (both hands on head)
+    'head_pain': function(dur) {
+        setBoneEuler('rightUpperArm', -50, -20, 40, 500, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 500, 100);
+        setBoneEuler('leftUpperArm', -50, 20, -40, 500, 0);
+        setBoneEuler('leftForeArm', -130, 0, 0, 500, 100);
+        setBoneEuler('head', 15, 0, 0, 500, 200);
+        resetAllBones(dur || 1800);
+    },
+    // BELLY PAIN
+    'belly_pain': function(dur) {
+        setBoneEuler('rightUpperArm', 30, -30, 30, 500, 0);
+        setBoneEuler('rightForeArm', -100, 0, 0, 500, 100);
+        setBoneEuler('leftUpperArm', 30, 30, -30, 500, 0);
+        setBoneEuler('leftForeArm', -100, 0, 0, 500, 100);
+        setBoneEuler('spine', 15, 0, 0, 500, 200);
+        resetAllBones(dur || 1800);
+    },
+    // WALK sign (two fingers walk)
+    'walk_sign': function(dur) {
+        setBoneEuler('rightUpperArm', 10, 0, 20, 300, 0);
+        setBoneEuler('rightForeArm', -50, 0, 0, 300, 100);
+        setBoneEuler('leftUpperArm', 10, 0, -20, 300, 200);
+        setBoneEuler('leftForeArm', -50, 0, 0, 300, 300);
+        setBoneEuler('rightUpperArm', 10, 0, 30, 300, 500);
+        setBoneEuler('leftUpperArm', 10, 0, -10, 300, 500);
+        resetAllBones(dur || 1200);
+    },
+    // HOSPITAL
+    'hospital': function(dur) {
+        // Draw a cross in the air
+        setBoneEuler('rightUpperArm', -10, 0, 50, 400, 0);
+        setBoneEuler('rightForeArm', -70, 0, 0, 400, 100);
+        setBoneEuler('rightHand', 0, 0, 0, 300, 200);
+        // Vertical line
+        setBoneEuler('rightUpperArm', -40, 0, 50, 300, 500);
+        setBoneEuler('rightUpperArm', 10, 0, 50, 300, 800);
+        // Horizontal line
+        setBoneEuler('rightForeArm', -60, 30, 0, 300, 1100);
+        setBoneEuler('rightForeArm', -60, -30, 0, 300, 1400);
+        resetAllBones(dur || 2000);
+    },
+    // COLD/SHIVER
+    'shiver': function(dur) {
+        setBoneEuler('rightUpperArm', 20, -20, 30, 200, 0);
+        setBoneEuler('leftUpperArm', 20, 20, -30, 200, 0);
+        setBoneEuler('rightForeArm', -90, 0, 0, 200, 100);
+        setBoneEuler('leftForeArm', -90, 0, 0, 200, 100);
+        setBoneEuler('head', 0, 5, 0, 150, 200);
+        setBoneEuler('head', 0, -5, 0, 150, 400);
+        setBoneEuler('head', 0, 5, 0, 150, 600);
+        resetAllBones(dur || 1200);
+    },
+    // FEVER (wipe forehead)
+    'fever': function(dur) {
+        setBoneEuler('rightUpperArm', -50, -20, 30, 500, 0);
+        setBoneEuler('rightForeArm', -130, 0, 0, 500, 100);
+        setBoneEuler('rightHand', 0, 20, 0, 400, 400);
+        setBoneEuler('rightHand', 0, -20, 0, 400, 800);
+        resetAllBones(dur || 1500);
+    }
+};
+
+// Map each Tunisian phrase to a gesture sequence
+var dialectGestureMap = {
+    // Greetings
+    '\u0623\u0647\u0644\u0627': 'wave_right',
+    '\u0645\u0631\u062d\u0628\u0627': 'wave_right',
+    '\u0635\u0628\u0627\u062d \u0627\u0644\u062e\u064a\u0631': 'wave_right',
+    '\u0645\u0633\u0627\u0621 \u0627\u0644\u062e\u064a\u0631': 'wave_right',
+    '\u062a\u0635\u0628\u062d \u0639\u0644\u0649 \u062e\u064a\u0631': 'sleep',
+    '\u0628\u0633\u0644\u0627\u0645\u0629': 'wave_right',
+    '\u0648\u062f\u0627\u0639\u0627': 'wave_right',
+    // Questions
+    '\u0643\u064a\u0641\u0627\u0634 \u0631\u0627\u0643': 'hand_on_heart',
+    '\u0643\u064a\u0641 \u062d\u0627\u0644\u0643': 'hand_on_heart',
+    '\u0634\u0646\u0648\u0629 \u0623\u062e\u0628\u0627\u0631\u0643': 'raise_both_high',
+    '\u0634\u0628\u064a\u0643': 'point_forward',
+    '\u0648\u0627\u0634 \u062a\u062d\u0628': 'hand_on_heart',
+    '\u0648\u064a\u0646 \u0631\u0627\u064a\u062d': 'point_forward',
+    '\u0648\u0642\u062a\u0627\u0634': 'circle_hands',
+    '\u0634\u062d\u0627\u0644': 'raise_both_high',
+    '\u0639\u0644\u0627\u0634': 'shrug',
+    // Responses
+    '\u0628\u062e\u064a\u0631 \u0627\u0644\u062d\u0645\u062f \u0644\u0644\u0647': 'thumbs_up',
+    '\u0645\u0644\u064a\u062d': 'thumbs_up',
+    '\u064a\u0627\u0633\u0631 \u0645\u0632\u064a\u0627\u0646': 'thumbs_up_both',
+    '\u0645\u0627\u0634\u064a \u0628\u0627\u0647\u064a': 'thumbs_down',
+    '\u0645\u0648\u0634 \u0628\u0627\u0647\u064a': 'thumbs_down',
+    '\u0628\u0631\u0634\u0627': 'raise_both_high',
+    '\u0634\u0648\u064a\u0629': 'point_forward',
+    '\u0645\u0627 \u0641\u0645\u0627\u0634': 'cross_arms',
+    // Politeness
+    '\u0634\u0643\u0631\u0627': 'hand_on_heart',
+    '\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0635\u062d\u0629': 'flex_arm',
+    '\u0645\u0646 \u0641\u0636\u0644\u0643': 'hands_on_chest',
+    '\u0639\u0641\u0648\u0627': 'hands_on_chest',
+    '\u0633\u0627\u0645\u062d\u0646\u064a': 'hands_on_chest',
+    '\u0628\u0627\u0644\u0637\u064a\u0628': 'hand_on_heart',
+    // Yes/No
+    '\u0646\u0639\u0645': 'nod_yes',
+    '\u0625\u064a': 'nod_yes',
+    '\u0644\u0627': 'shake_no',
+    '\u0644\u0627\u0644\u0627': 'shake_no',
+    // Understanding
+    '\u0645\u0627 \u0641\u0647\u0645\u062a\u0634': 'hand_on_forehead',
+    '\u0644\u0645 \u0623\u0641\u0647\u0645': 'hand_on_forehead',
+    '\u0641\u0647\u0645\u062a': 'thumbs_up',
+    '\u0639\u0627\u0648\u062f \u0642\u0648\u0644': 'circle_hands',
+    '\u0623\u0641\u0647\u0645 \u0634\u0648\u064a\u0629': 'point_forward',
+    // Emotions
+    '\u0646\u062d\u0628\u0643': 'hands_on_chest',
+    '\u0623\u062d\u0628\u0643': 'hands_on_chest',
+    '\u0641\u0631\u062d\u0627\u0646': 'raise_both_high',
+    '\u0632\u0639\u0641\u0627\u0646': 'cross_arms',
+    '\u062a\u0639\u0628\u0627\u0646': 'hand_on_forehead',
+    '\u0645\u0628\u0633\u0648\u0637': 'thumbs_up_both',
+    // Family
+    '\u0639\u0627\u0626\u0644\u062a\u064a': 'circle_hands',
+    '\u0623\u0645\u064a': 'touch_cheek',
+    '\u0623\u0628\u064a': 'touch_chin',
+    '\u062e\u0648\u064a\u0627': 'wave_right',
+    '\u062e\u062a\u064a': 'touch_cheek',
+    // Food
+    '\u0645\u0627\u0643\u0644\u0629': 'eat',
+    '\u0634\u0631\u0628\u0629': 'drink',
+    '\u0643\u0633\u0643\u0633\u064a': 'circle_hands',
+    '\u0628\u0631\u0643': 'drink',
+    '\u0642\u0647\u0648\u0629': 'drink',
+    '\u062e\u0628\u0632': 'circle_hands',
+    '\u062c\u064a\u0639': 'hand_on_belly',
+    '\u0639\u0637\u0634\u0627\u0646': 'drink',
+    '\u0634\u0628\u0639\u062a': 'cross_arms',
+    // Time
+    '\u062a\u0648\u0627': 'point_forward',
+    '\u062f\u0627\u0628\u0627': 'point_forward',
+    '\u0641\u064a\u0633\u0639': 'wave_right',
+    '\u0627\u0644\u064a\u0648\u0645': 'point_up',
+    '\u0627\u0644\u0628\u0627\u0631\u062d': 'wave_right',
+    '\u063a\u062f\u0648\u0629': 'point_forward',
+    '\u0628\u0631\u0647\u0629': 'point_up',
+    // Places
+    '\u062f\u0627\u0631': 'roof',
+    '\u0633\u0648\u0642': 'circle_hands',
+    '\u062c\u0627\u0645\u0639': 'point_up',
+    '\u062a\u0648\u0646\u0633 \u0627\u0644\u062e\u0636\u0631\u0627\u0621': 'raise_both_high',
+    '\u0634\u0627\u0631\u0639': 'wave_both',
+    // Verbs
+    '\u0646\u0645\u0634\u064a': 'walk_sign',
+    '\u0646\u062c\u064a': 'wave_right',
+    '\u0646\u0639\u0645\u0644': 'circle_hands',
+    '\u0646\u0642\u0631\u0627': 'circle_hands',
+    '\u0646\u0643\u062a\u0628': 'write',
+    '\u0646\u0634\u0648\u0641': 'point_eyes',
+    '\u0646\u0633\u0645\u0639': 'point_ears',
+    // Expressions
+    '\u0625\u0646 \u0634\u0627\u0621 \u0627\u0644\u0644\u0647': 'point_up',
+    '\u0627\u0644\u062d\u0645\u062f \u0644\u0644\u0647': 'hand_on_heart',
+    '\u0645\u0627\u0634\u064a \u0645\u0634\u0643\u0644': 'thumbs_up',
+    '\u0639\u0646\u062f\u0643 \u0627\u0644\u062d\u0642': 'thumbs_up',
+    '\u064a\u0627 \u0633\u0644\u0627\u0645': 'raise_both_high',
+    '\u0631\u0628\u064a \u064a\u0639\u064a\u0646\u0643': 'pray',
+    '\u0628\u0627\u0644\u0644\u0647': 'pray',
+    '\u0639\u0627\u062f\u064a': 'wave_both',
+    // Tech
+    '\u062a\u064a\u0644\u064a\u0641\u0648\u0646': 'phone',
+    '\u0643\u0645\u0628\u064a\u0648\u062a\u0631': 'write',
+    '\u0627\u0646\u062a\u0631\u0646\u062a': 'circle_hands',
+    // Health
+    '\u0645\u0631\u064a\u0636': 'hand_on_forehead',
+    '\u0637\u0628\u064a\u0628': 'stethoscope',
+    '\u062f\u0648\u0627\u0621': 'eat',
+    '\u0645\u0631\u062a\u0627\u062d': 'relax',
+    '\u064a\u0648\u062c\u0639\u0646\u064a': 'hand_on_belly',
+    '\u0631\u0627\u0633\u064a \u064a\u0648\u062c\u0639\u0646\u064a': 'head_pain',
+    '\u0643\u0631\u0634\u064a \u062a\u0648\u062c\u0639\u0646\u064a': 'belly_pain',
+    '\u0646\u062d\u0628 \u0646\u0645\u0634\u064a \u0644\u0644\u0637\u0628\u064a\u0628': 'stethoscope',
+    '\u0633\u062e\u0648\u0646\u0629': 'fever',
+    '\u0628\u0631\u062f': 'shiver',
+    '\u0635\u0628\u064a\u0637\u0627\u0631': 'hospital',
+    '\u0641\u0627\u0631\u0645\u0627\u0633\u064a\u0627\u0646': 'eat',
+    // Weather
+    '\u0634\u0645\u0633': 'circle_hands',
+    '\u0634\u062a\u0627\u0621': 'shiver',
+    '\u0635\u064a\u0641': 'fever',
+    '\u0634\u062a\u064a': 'raise_both_high',
+    // Numbers
+    '\u0648\u0627\u062d\u062f': 'point_up',
+    '\u0632\u0648\u0632': 'wave_both',
+    '\u062b\u0644\u0627\u062b\u0629': 'raise_both_high'
+};
+
+function playDialectGesture(word, callback) {
+    var gestureName = dialectGestureMap[word];
+    if (!gestureName || !gestureLib[gestureName]) {
+        console.warn('No gesture for:', word, '-> using wave_right');
+        gestureName = 'wave_right';
+    }
+    gestureActive = true;
+    // Stop any mixer animations
+    if (mixer) {
+        Object.keys(builtInAnims).forEach(function(k) { builtInAnims[k].stop(); });
+    }
+    var dur = 1500;
+    gestureLib[gestureName](dur);
+    setTimeout(function() {
+        gestureActive = false;
+        if (callback) callback();
+    }, dur + 300);
+}
+
+function playDialectGestureQueue(signs, idx) {
+    if (idx >= signs.length) {
+        showSt(I18N.t('sequence_done'), 'ok');
+        animInd.classList.add('hid');
+        return;
+    }
+    var sign = signs[idx];
+    curWord.textContent = sign.word;
+    showSt(I18N.t('sign_progress').replace('{i}', idx+1).replace('{t}', signs.length).replace('{w}', sign.word).replace('{d}', sign.description), 'info');
+    playDialectGesture(sign.word, function() {
+        playDialectGestureQueue(signs, idx + 1);
+    });
+}
+
+// ============================================================
+// TRANSLATE (Video + Pose Tracking + Tunisian Dialect)
+// ============================================================
+function isArabic(text) {
+    return /[\u0600-\u06FF]/.test(text);
+}
+
+function doTranslate(text) {
+    if (!text.trim()) { showSt(I18N.t('enter_text_warn'), 'warn'); return; }
+
+    transBtn.disabled = true;
+    transBtn.textContent = '\u23f3 ' + I18N.t('translating_now');
+    showSt(I18N.t('translating_now'), 'info');
+
+    if (isArabic(text)) {
+        // Tunisian dialect -> gesture animation
+        fetch('/api/dialect/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success && data.signs && data.signs.length > 0) {
+                animInd.classList.remove('hid');
+                vidPH.style.display = '';
+                vidPlayer.style.display = 'none';
+                poseCanvas.style.display = 'none';
+                vidPH.innerHTML = '<span class=\"ic\">\ud83e\udef0</span>' +
+                    data.signs.map(function(s) {
+                        return '<p style=\"font-size:1.1rem;margin:8px 0;direction:rtl\"><strong>' + s.word + '</strong><br>' + s.description + '</p>';
+                    }).join('');
+                // Play gesture animations on avatar!
+                playDialectGestureQueue(data.signs, 0);
+            } else {
+                showSt('\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0627\u0644\u0642\u0627\u0645\u0648\u0633' + (data.missing ? ': ' + data.missing.join(', ') : ''), 'err');
+            }
+        })
+        .catch(function(err) { console.error(err); showSt(I18N.t('err_server'), 'err'); })
+        .finally(function() { transBtn.disabled = false; transBtn.textContent = '\ud83d\udd04 ' + I18N.t('btn_translate_label'); });
+    } else {
+        // French -> medical video + pose tracking
+        doTranslateMedical(text);
+    }
+}
+
+function doTranslateMedical(text) {
+    fetch('/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success && data.videos.length > 0) {
+            videoQueue = data.videos.map(function(vp, i) {
+                return {
+                    video_path: '/videos/' + vp,
+                    word: data.matched_words[i] || vp.split('/').pop().replace('.mp4', '')
+                };
+            });
+            var msg = I18N.t('signs_count').replace('{n}', data.videos.length);
+            if (data.missing_words.length > 0) {
+                msg += ' | ' + I18N.t('missing_label') + data.missing_words.join(', ');
+            }
+            showSt(msg, data.missing_words.length > 0 ? 'warn' : 'ok');
+            startPlayback();
+        } else {
+            showSt(data.missing_words ? I18N.t('not_found') + data.missing_words.join(', ') : I18N.t('no_sign_found'), 'err');
+        }
+    })
+    .catch(function(err) { console.error(err); showSt(I18N.t('err_server'), 'err'); })
+    .finally(function() { transBtn.disabled = false; transBtn.textContent = '\ud83d\udd04 ' + I18N.t('btn_translate_label'); });
+}
+
+// ============================================================
+// PLAYBACK
+// ============================================================
+function startPlayback() {
+    currentIdx = -1;
+    playing = true;
+    paused = false;
+    pauseBtn.disabled = false; stopBtn.disabled = false;
+    qSec.classList.remove('hid');
+    animInd.classList.remove('hid');
+    renderQ();
+    playNextVid();
+}
+
+function playNextVid() {
+    currentIdx++;
+    if (currentIdx >= videoQueue.length) { onDone(); return; }
+
+    var item = videoQueue[currentIdx];
+    curWord.textContent = item.word;
+    renderQ(); updateNav();
+
+    // Show video & canvas
+    vidPH.style.display = 'none';
+    vidPlayer.style.display = 'block';
+    poseCanvas.style.display = 'block';
+    poseCanvas.style.zIndex = '2';
+    vidPlayer.style.zIndex = '1';
+
+    vidPlayer.src = item.video_path;
+    vidPlayer.play().then(function() {
+        // Start pose tracking on the video
+        console.log('📹 Video started:', item.word);
+        console.log('   🔍 MediaPipe ready? Pose=' + poseReady);
+        if (poseReady) {
+            startPoseLoop();
+        } else {
+            console.error('❌ Cannot start tracking: MediaPipe Pose not initialized');
+            console.error('   Check for WASM loading errors above');
+            poseLabel.textContent = I18N.t('pose_error');
+            poseBadge.className = 'pose-badge off';
+        }
+    }).catch(function(e) { console.warn('Video play error:', e); });
+
+    showSt(I18N.t('sign_playing').replace('{i}', currentIdx + 1).replace('{t}', videoQueue.length).replace('{w}', item.word), 'info');
+}
+
+function playPrevVid() {
+    if (currentIdx <= 0) return;
+    stopPoseLoop();
+    currentIdx -= 2;
+    playNextVid();
+}
+
+function onDone() {
+    playing = false;
+    stopPoseLoop();
+    animInd.classList.add('hid');
+    pauseBtn.disabled = true; stopBtn.disabled = true;
+    prevBtn.disabled = true; nextBtn.disabled = true;
+    showSt(I18N.t('playback_done'), 'ok');
+    renderQ();
+}
+
+function stopAll() {
+    playing = false; paused = false;
+    currentIdx = -1; videoQueue = [];
+    vidPlayer.pause(); vidPlayer.removeAttribute('src');
+    vidPlayer.style.display = 'none';
+    poseCanvas.style.display = 'none';
+    vidPH.style.display = '';
+    stopPoseLoop();
+    animInd.classList.add('hid');
+    qSec.classList.add('hid');
+    pauseBtn.disabled = true; stopBtn.disabled = true;
+    prevBtn.disabled = true; nextBtn.disabled = true;
+    showSt(I18N.t('stopped'), 'info');
+}
+
+function togglePause() {
+    if (!playing) return;
+    paused = !paused;
+    if (paused) {
+        vidPlayer.pause();
+        pauseBtn.textContent = '▶ ' + I18N.t('btn_play');
+        pauseBtn.classList.add('on');
+    } else {
+        vidPlayer.play();
+        pauseBtn.textContent = '⏸ ' + I18N.t('btn_pause');
+        pauseBtn.classList.remove('on');
+    }
+}
+
+function updateNav() {
+    prevBtn.disabled = currentIdx <= 0;
+    nextBtn.disabled = currentIdx >= videoQueue.length - 1;
+}
+
+function renderQ() {
+    qList.innerHTML = '';
+    videoQueue.forEach(function(item, i) {
+        var el = document.createElement('span');
+        el.className = 'qi' + (i === currentIdx ? ' act' : '') + (i < currentIdx ? ' dn' : '');
+        el.textContent = item.word;
+        el.onclick = function() { if (playing) { stopPoseLoop(); currentIdx = i - 1; playNextVid(); } };
+        qList.appendChild(el);
+    });
+}
+
+// Video ended → next
+vidPlayer.addEventListener('ended', function() {
+    if (playing && !paused) {
+        stopPoseLoop();
+        setTimeout(playNextVid, 300);
+    }
+});
+
+// ============================================================
+// UI
+// ============================================================
+function showSt(msg, type) {
+    stBar.textContent = msg;
+    stBar.className = 'status ' + (type || 'info');
+}
+
+function go(word) {
+    tInput.value = word;
+    doTranslate(word);
+}
+
+// ============================================================
+// SPEECH RECOGNITION (bilingual: fr-FR + ar-TN)
+// ============================================================
+var recog = null, isRec = false;
+var recogLang = 'fr-FR'; // default
+
+function createRecog(lang) {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        micBtn.disabled = true;
+        return null;
+    }
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var r = new SR();
+    r.lang = lang;
+    r.continuous = true;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    r.onresult = function(e) {
+        var finalTranscript = '';
+        var interimTranscript = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+                finalTranscript += e.results[i][0].transcript;
+            } else {
+                interimTranscript += e.results[i][0].transcript;
+            }
+        }
+        if (finalTranscript) {
+            tInput.value = finalTranscript.trim();
+            showSt(I18N.t('recognized').replace('{l}', lang).replace('{t}', finalTranscript.trim()), 'ok');
+            recog.stop();
+            isRec = false; micBtn.classList.remove('rec'); micBtn.textContent = I18N.t('mic_label');
+            doTranslate(finalTranscript.trim());
+        } else if (interimTranscript) {
+            tInput.value = interimTranscript;
+            showSt('🎙 ' + interimTranscript + '...', 'info');
+        }
+    };
+    r.onerror = function(ev) {
+        console.error('Speech error:', ev.error);
+        isRec = false; micBtn.classList.remove('rec'); micBtn.textContent = I18N.t('mic_label');
+        if (ev.error === 'no-speech') {
+            showSt(I18N.t('no_voice'), 'warn');
+        } else if (ev.error === 'not-allowed') {
+            showSt(I18N.t('mic_refused'), 'err');
+        } else {
+            showSt(I18N.t('err_recognition') + ev.error, 'err');
+        }
+    };
+    r.onend = function() {
+        if (isRec) {
+            // auto-restart if still recording (prevents random stops)
+            try { r.start(); } catch(e) {}
+        } else {
+            micBtn.classList.remove('rec'); micBtn.textContent = I18N.t('mic_label');
+        }
+    };
+    return r;
+}
+
+recog = createRecog('fr-FR');
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+transBtn.addEventListener('click', function() { doTranslate(tInput.value); });
+tInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.ctrlKey) doTranslate(tInput.value); });
+
+micBtn.addEventListener('click', function() {
+    if (isRec) {
+        isRec = false;
+        if (recog) recog.stop();
+        micBtn.classList.remove('rec'); micBtn.textContent = I18N.t('mic_label');
+        showSt(I18N.t('mic_stopped'), 'info');
+    } else {
+        // Toggle language each click
+        recogLang = recogLang === 'fr-FR' ? 'ar-TN' : 'fr-FR';
+        recog = createRecog(recogLang);
+        if (!recog) return;
+        try {
+            isRec = true;
+            recog.start();
+            micBtn.classList.add('rec'); micBtn.textContent = '🛑 ' + recogLang;
+            showSt(I18N.t('speak_now_lang').replace('{l}', recogLang === 'ar-TN' ? I18N.t('lang_tn') : I18N.t('lang_fr')), 'info');
+        } catch(e) {
+            console.error('Speech start error:', e);
+            isRec = false;
+        }
+    }
+});
+
+clearBtn.addEventListener('click', function() {
+    tInput.value = '';
+    stopAll();
+    stBar.className = 'status info hid';
+});
+
+prevBtn.addEventListener('click', playPrevVid);
+nextBtn.addEventListener('click', function() { if (playing) { stopPoseLoop(); playNextVid(); } });
+pauseBtn.addEventListener('click', togglePause);
+stopBtn.addEventListener('click', stopAll);
+
+// ============================================================
+// STARTUP
+// ============================================================
+initScene();
+loadAvatar();
+initMediaPipe();
+// MediaPipe Hands and FaceMesh disabled to prevent WASM conflicts
+// Only using Pose for body tracking (includes wrists + basic finger landmarks)
+console.log('ℹ️ Using MediaPipe Pose only (33 landmarks including arms, wrists, and basic hand points)');
+
+// ============================================================
+// CAMERA GESTURE RECOGNITION (Signes → Texte)
+// ============================================================
+var CAM_HOLD_TIME = 1100;
+var CAM_COOLDOWN = 900;
+var CAM_CONFIDENCE_MIN = 0.68;
+var CAM_SMOOTH_FRAMES = 5;
+
+// Hand landmark indices
+var HLM = {
+    WRIST:0, THUMB_CMC:1, THUMB_MCP:2, THUMB_IP:3, THUMB_TIP:4,
+    INDEX_MCP:5, INDEX_PIP:6, INDEX_DIP:7, INDEX_TIP:8,
+    MIDDLE_MCP:9, MIDDLE_PIP:10, MIDDLE_DIP:11, MIDDLE_TIP:12,
+    RING_MCP:13, RING_PIP:14, RING_DIP:15, RING_TIP:16,
+    PINKY_MCP:17, PINKY_PIP:18, PINKY_DIP:19, PINKY_TIP:20
+};
+
+// Gesture → Word mapping (display uses i18n keys resolved at runtime)
+var GEST_MAP = {
+    'open_palm':    { displayKey:'gest_open_palm',    words:['bonjour','salut'], ar:'أهلا / مرحبا' },
+    'thumbs_up':    { displayKey:'gest_thumbs_up',    words:['oui','merci','bien'], ar:'نعم / شكرا' },
+    'thumbs_down':  { displayKey:'gest_thumbs_down',  words:['non','mauvais'], ar:'لا / ماشي باهي' },
+    'fist':         { displayKey:'gest_fist',         words:['douleur','force'], ar:'يوجعني' },
+    'pointing_up':  { displayKey:'gest_pointing_up',  words:['attention','un'], ar:'انتباه' },
+    'peace':        { displayKey:'gest_peace',        words:['deux','paix'], ar:'اثنين / سلام' },
+    'ok_sign':      { displayKey:'gest_ok',           words:['d\'accord','ok'], ar:'ماشي مشكل' },
+    'three_fingers':{ displayKey:'gest_three',        words:['trois','médecin'], ar:'طبيب' },
+    'four_fingers': { displayKey:'gest_four',         words:['quatre','hôpital'], ar:'صبيطار' },
+    'five_fingers': { displayKey:'gest_five',         words:['cinq','stop'], ar:'خمسة' },
+    'call_sign':    { displayKey:'gest_phone',        words:['téléphone','appeler'], ar:'تيليفون' },
+    'love':         { displayKey:'gest_love',         words:['amour','coeur'], ar:'نحبك' },
+    'rock':         { displayKey:'gest_rock',         words:['courage','fort'], ar:'شجاعة' },
+    'finger_gun':   { displayKey:'gest_gun',          words:['vaccin','injection'], ar:'تلقيح' },
+    'flat_hand_down':{ displayKey:'gest_calm',        words:['calme','attendre'], ar:'استنى' }
+};
+// Helper: get translated display name for a gesture
+function gestDisplay(gName) {
+    var info = GEST_MAP[gName];
+    return info ? I18N.t(info.displayKey) : gName;
+}
+
+// State
+var handsDetector = null, camRunning = false, camMode = false;
+var camCurrentGesture = null, camGestureStart = 0;
+var camLastConfirmed = null, camLastConfirmedTime = 0;
+var camSentenceWords = [], camHistoryList = [];
+var camRecentGestures = [];
+
+// DOM refs (lazy, initialized on first use)
+var _camEls = null;
+function camEls() {
+    if (!_camEls) _camEls = {
+        video: document.getElementById('camVideo'),
+        canvas: document.getElementById('camCanvas'),
+        ph: document.getElementById('camPH'),
+        overlay: document.getElementById('camOverlay'),
+        label: document.getElementById('camGestureLabel'),
+        conf: document.getElementById('camConfidence'),
+        progress: document.getElementById('camProgress'),
+        progressBar: document.getElementById('camProgressBar'),
+        detGesture: document.getElementById('camDetectedGesture'),
+        detWord: document.getElementById('camDetectedWord'),
+        sentence: document.getElementById('camSentence'),
+        history: document.getElementById('camHistory'),
+        status: document.getElementById('camStatus'),
+        startBtn: document.getElementById('startCamBtn'),
+        stopBtn: document.getElementById('stopCamBtn'),
+        speakBtn: document.getElementById('camSpeakBtn'),
+        copyBtn: document.getElementById('camCopyBtn')
+    };
+    return _camEls;
+}
+
+// ===== Toggle between Avatar mode and Camera mode =====
+function toggleCameraMode() {
+    camMode = !camMode;
+    var mainLayout = document.querySelector('.main-layout:not(#cameraSection)');
+    var camSection = document.getElementById('cameraSection');
+    var camBtn = document.getElementById('camModeBtn');
+    var avatarLink = document.getElementById('avatarModeLink');
+
+    if (camMode) {
+        mainLayout.classList.add('hid');
+        camSection.classList.remove('hid');
+        camBtn.className = 'nav-link a';
+        avatarLink.className = 'nav-link v';
+    } else {
+        mainLayout.classList.remove('hid');
+        camSection.classList.add('hid');
+        camBtn.className = 'nav-link v';
+        avatarLink.className = 'nav-link a';
+        // Stop camera if running
+        if (camRunning) stopWebcam();
+    }
+}
+
+// ===== Finger detection helpers =====
+function _fingerUp(lm, tip, pip) { return lm[tip].y < lm[pip].y - 0.02; }
+function _thumbUp(lm, hand) {
+    var tx = lm[HLM.THUMB_TIP].x, ix = lm[HLM.THUMB_IP].x;
+    return hand === 'Right' ? tx < ix - 0.02 : tx > ix + 0.02;
+}
+function _fingerStates(lm, hand) {
+    return [
+        _thumbUp(lm, hand),
+        _fingerUp(lm, HLM.INDEX_TIP, HLM.INDEX_PIP),
+        _fingerUp(lm, HLM.MIDDLE_TIP, HLM.MIDDLE_PIP),
+        _fingerUp(lm, HLM.RING_TIP, HLM.RING_PIP),
+        _fingerUp(lm, HLM.PINKY_TIP, HLM.PINKY_PIP)
+    ];
+}
+function _dist(a, b) { return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2)); }
+
+// ===== Classify gesture from hand landmarks =====
+function classifyHandGesture(lm, hand) {
+    var f = _fingerStates(lm, hand);
+    var t=f[0], i=f[1], m=f[2], r=f[3], p=f[4];
+    var n = f.filter(Boolean).length;
+    var tiTouch = _dist(lm[HLM.THUMB_TIP], lm[HLM.INDEX_TIP]) < 0.06;
+
+    // OK sign
+    if (tiTouch && m && !r) return {g:'ok_sign',c:0.88};
+    if (tiTouch && m && r && p) return {g:'ok_sign',c:0.90};
+
+    // Pinch (not used as standalone but ok)
+    // Fist
+    if (n === 0) return {g:'fist',c:0.92};
+
+    // Only thumb
+    if (t && !i && !m && !r && !p) {
+        return lm[HLM.THUMB_TIP].y < lm[HLM.THUMB_MCP].y ? {g:'thumbs_up',c:0.92} : {g:'thumbs_down',c:0.85};
+    }
+
+    // Only index
+    if (!t && i && !m && !r && !p) return {g:'pointing_up',c:0.90};
+
+    // Peace / V
+    if (!t && i && m && !r && !p) return {g:'peace',c:0.90};
+
+    // Call sign (thumb + pinky)
+    if (t && !i && !m && !r && p) return {g:'call_sign',c:0.88};
+
+    // ILY (thumb + index + pinky)
+    if (t && i && !m && !r && p) return {g:'love',c:0.88};
+
+    // Rock (index + pinky)
+    if (!t && i && !m && !r && p) return {g:'rock',c:0.85};
+
+    // Finger gun (thumb + index)
+    if (t && i && !m && !r && !p) return {g:'finger_gun',c:0.82};
+
+    // Three fingers
+    if (!t && i && m && r && !p) return {g:'three_fingers',c:0.85};
+    if (t && i && m && !r && !p) return {g:'three_fingers',c:0.80};
+
+    // Four fingers
+    if (!t && i && m && r && p) return {g:'four_fingers',c:0.88};
+
+    // Five / open palm
+    if (n === 5) {
+        var palmDown = lm[HLM.MIDDLE_MCP].y < lm[HLM.WRIST].y;
+        return palmDown ? {g:'flat_hand_down',c:0.85} : {g:'open_palm',c:0.92};
+    }
+
+    return {g:null,c:0};
+}
+
+// ===== Smoothing =====
+function smoothCamGesture(det) {
+    camRecentGestures.push(det);
+    if (camRecentGestures.length > CAM_SMOOTH_FRAMES) camRecentGestures.shift();
+    var counts = {};
+    camRecentGestures.forEach(function(d) { if (d.g) counts[d.g] = (counts[d.g]||0)+1; });
+    var best = null, bestC = 0;
+    Object.keys(counts).forEach(function(g) { if (counts[g] > bestC) { bestC = counts[g]; best = g; } });
+    if (best && bestC >= Math.ceil(CAM_SMOOTH_FRAMES * 0.5)) {
+        var confs = camRecentGestures.filter(function(d){return d.g===best;}).map(function(d){return d.c;});
+        return {g:best, c:confs.reduce(function(a,b){return a+b;},0)/confs.length};
+    }
+    return {g:null, c:0};
+}
+
+// ===== MediaPipe Hands results =====
+function onHandResults(results) {
+    var el = camEls();
+    var ctx = el.canvas.getContext('2d');
+    ctx.save();
+    ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
+    ctx.drawImage(results.image, 0, 0, el.canvas.width, el.canvas.height);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        for (var hi = 0; hi < results.multiHandLandmarks.length; hi++) {
+            var lm = results.multiHandLandmarks[hi];
+            var hand = results.multiHandedness[hi].label;
+            // Draw
+            drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'#00FF88',lineWidth:3});
+            drawLandmarks(ctx, lm, {color:'#FF4444',lineWidth:1,radius:4});
+            // Classify
+            var det = classifyHandGesture(lm, hand);
+            var sm = smoothCamGesture(det);
+            if (sm.g && sm.c >= CAM_CONFIDENCE_MIN) {
+                handleCamGesture(sm.g, sm.c);
+            } else {
+                updateCamOverlay(null, 0);
+            }
+        }
+    } else {
+        camRecentGestures = [];
+        updateCamOverlay(null, 0);
+        camCurrentGesture = null;
+        camGestureStart = 0;
+        updateCamProgress(0);
+    }
+    ctx.restore();
+}
+
+// ===== Handle detected gesture (hold-to-confirm) =====
+function handleCamGesture(gName, conf) {
+    var info = GEST_MAP[gName];
+    if (!info) return;
+    var now = Date.now();
+    updateCamOverlay(gName, conf);
+    updateCamDetails(gName, conf);
+
+    if (camCurrentGesture !== gName) {
+        camCurrentGesture = gName;
+        camGestureStart = now;
+        updateCamProgress(0);
+    } else {
+        var hold = now - camGestureStart;
+        var progress = Math.min(hold / CAM_HOLD_TIME, 1);
+        updateCamProgress(progress);
+        if (hold >= CAM_HOLD_TIME) {
+            if (camLastConfirmed !== gName || (now - camLastConfirmedTime) > CAM_COOLDOWN) {
+                confirmCamGesture(gName, conf);
+                camLastConfirmed = gName;
+                camLastConfirmedTime = now;
+                camGestureStart = now;
+            }
+        }
+    }
+}
+
+function confirmCamGesture(gName, conf) {
+    var info = GEST_MAP[gName];
+    if (!info) return;
+    var word = info.words[0];
+    camSentenceWords.push(word);
+    updateCamSentence();
+    addCamHistory(gName, word, conf);
+    camEls().status.textContent = I18N.t('word_added').replace('{w}', word);
+    camEls().status.className = 'status ok';
+    // Flash
+    var det = document.getElementById('camDetection');
+    det.classList.add('cam-confirmed');
+    setTimeout(function(){ det.classList.remove('cam-confirmed'); }, 500);
+}
+
+// ===== UI Updates =====
+function updateCamOverlay(gName, conf) {
+    var el = camEls();
+    if (gName && GEST_MAP[gName]) {
+        el.overlay.classList.remove('hid');
+        el.label.textContent = gestDisplay(gName);
+        el.conf.textContent = Math.round(conf*100) + '%';
+        // Border glow based on progress
+    } else {
+        el.overlay.classList.add('hid');
+    }
+}
+
+function updateCamDetails(gName, conf) {
+    var info = GEST_MAP[gName];
+    if (!info) return;
+    camEls().detGesture.textContent = I18N.t(info.displayKey);
+    camEls().detWord.textContent = info.words.join(' / ') + '  (' + info.ar + ')';
+}
+
+function updateCamProgress(p) {
+    var el = camEls();
+    if (p > 0) {
+        el.progress.classList.remove('hid');
+        el.progressBar.style.width = Math.round(p * 100) + '%';
+        // Overlay glow
+        el.overlay.style.borderColor = 'rgba(34,197,94,' + p + ')';
+        el.overlay.style.boxShadow = '0 0 ' + Math.round(20*p) + 'px rgba(34,197,94,' + (p*0.5) + ')';
+    } else {
+        el.progress.classList.add('hid');
+        el.progressBar.style.width = '0%';
+        el.overlay.style.borderColor = 'rgba(255,255,255,.3)';
+        el.overlay.style.boxShadow = 'none';
+    }
+}
+
+function updateCamSentence() {
+    var el = camEls();
+    if (camSentenceWords.length === 0) {
+        el.sentence.innerHTML = '<span class="cam-empty">' + I18N.t('words_appear_here') + '</span>';
+        el.speakBtn.disabled = true;
+        el.copyBtn.disabled = true;
+    } else {
+        el.sentence.innerHTML = camSentenceWords.map(function(w, i) {
+            return '<span class="cam-word" data-idx="'+i+'" onclick="camRemoveWord('+i+')">'+w+'</span>';
+        }).join('');
+        el.speakBtn.disabled = false;
+        el.copyBtn.disabled = false;
+    }
+}
+
+function addCamHistory(gName, word, conf) {
+    var info = GEST_MAP[gName];
+    camHistoryList.unshift({
+        time: new Date().toLocaleTimeString(),
+        gesture: I18N.t(info.displayKey),
+        word: word,
+        ar: info.ar,
+        conf: conf
+    });
+    if (camHistoryList.length > 40) camHistoryList.pop();
+    renderCamHistory();
+}
+
+function renderCamHistory() {
+    var el = camEls();
+    if (camHistoryList.length === 0) {
+        el.history.innerHTML = '<p style="color:var(--text-muted);font-style:italic;font-size:.8rem">' + I18N.t('no_gesture_detected') + '</p>';
+        return;
+    }
+    el.history.innerHTML = camHistoryList.map(function(e) {
+        return '<div class="cam-h-entry"><span class="cam-h-time">'+e.time+'</span><span class="cam-h-gesture">'+e.gesture+'</span><span class="cam-h-word">'+e.word+'</span><span class="cam-h-ar">'+e.ar+'</span></div>';
+    }).join('');
+}
+
+// ===== Camera start/stop =====
+async function startWebcam() {
+    var el = camEls();
+    el.startBtn.disabled = true;
+    el.startBtn.textContent = I18N.t('cam_loading');
+    el.status.textContent = I18N.t('model_init');
+    el.status.className = 'status info';
+
+    // Init MediaPipe Hands if needed
+    if (!handsDetector) {
+        try {
+            handsDetector = new Hands({
+                locateFile: function(file) {
+                    return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/' + file;
+                }
+            });
+            handsDetector.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.6
+            });
+            handsDetector.onResults(onHandResults);
+            el.status.textContent = I18N.t('model_loaded_cam');
+        } catch (err) {
+            console.error('Hands init error:', err);
+            el.status.textContent = I18N.t('err_model') + err.message;
+            el.status.className = 'status err';
+            el.startBtn.disabled = false;
+            el.startBtn.textContent = '📷 ' + I18N.t('start_camera');
+            return;
+        }
+    }
+
+    // Start camera
+    try {
+        var stream = await navigator.mediaDevices.getUserMedia({
+            video: { width:{ideal:1280}, height:{ideal:720}, facingMode:'user' }
+        });
+        el.video.srcObject = stream;
+        await el.video.play();
+        el.canvas.width = el.video.videoWidth || 1280;
+        el.canvas.height = el.video.videoHeight || 720;
+        el.ph.classList.add('hid');
+        el.canvas.style.display = 'block';
+        camRunning = true;
+        camProcessFrame();
+        el.startBtn.textContent = I18N.t('cam_active');
+        el.stopBtn.disabled = false;
+        el.status.textContent = I18N.t('do_gestures');
+        el.status.className = 'status ok';
+    } catch (err) {
+        console.error('Camera error:', err);
+        el.startBtn.disabled = false;
+        el.startBtn.textContent = '📷 ' + I18N.t('start_camera');
+        if (err.name === 'NotAllowedError') {
+            el.status.textContent = I18N.t('cam_perm_denied');
+        } else if (err.name === 'NotFoundError') {
+            el.status.textContent = I18N.t('no_camera_found');
+        } else {
+            el.status.textContent = I18N.t('err_generic') + err.message;
+        }
+        el.status.className = 'status err';
+    }
+}
+
+async function camProcessFrame() {
+    if (!camRunning) return;
+    var el = camEls();
+    if (el.video.readyState >= 2) {
+        await handsDetector.send({image: el.video});
+    }
+    requestAnimationFrame(camProcessFrame);
+}
+
+function stopWebcam() {
+    camRunning = false;
+    var el = camEls();
+    if (el.video.srcObject) {
+        el.video.srcObject.getTracks().forEach(function(t){t.stop();});
+        el.video.srcObject = null;
+    }
+    el.canvas.getContext('2d').clearRect(0, 0, el.canvas.width, el.canvas.height);
+    el.canvas.style.display = 'none';
+    el.ph.classList.remove('hid');
+    el.overlay.classList.add('hid');
+    el.progress.classList.add('hid');
+    camRecentGestures = [];
+    camCurrentGesture = null;
+    el.startBtn.disabled = false;
+    el.startBtn.textContent = '📷 ' + I18N.t('start_camera');
+    el.stopBtn.disabled = true;
+    el.status.textContent = I18N.t('cam_stopped');
+    el.status.className = 'status info';
+}
+
+// ===== Utility functions =====
+function camRemoveWord(idx) {
+    camSentenceWords.splice(idx, 1);
+    updateCamSentence();
+}
+
+function camClearSentence() {
+    camSentenceWords = [];
+    updateCamSentence();
+}
+
+function camClearAll() {
+    camSentenceWords = [];
+    camHistoryList = [];
+    updateCamSentence();
+    renderCamHistory();
+    camEls().detGesture.textContent = I18N.t('waiting');
+    camEls().detWord.textContent = '—';
+    camEls().status.textContent = I18N.t('results_cleared');
+    camEls().status.className = 'status info';
+}
+
+function camSpeak() {
+    if (camSentenceWords.length === 0) return;
+    var u = new SpeechSynthesisUtterance(camSentenceWords.join(' '));
+    u.lang = 'fr-FR'; u.rate = 0.9;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+}
+
+function camCopy() {
+    if (camSentenceWords.length === 0) return;
+    var txt = camSentenceWords.join(' ');
+    navigator.clipboard.writeText(txt).then(function() {
+        camEls().status.textContent = I18N.t('copied');
+        camEls().status.className = 'status ok';
+    }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        camEls().status.textContent = I18N.t('copied');
+        camEls().status.className = 'status ok';
+    });
+}
+
+console.log('Camera gesture recognition module loaded (' + Object.keys(GEST_MAP).length + ' gestures)');
+
+// ===== Hash detection: auto-open camera mode from /avatar#camera =====
+if (window.location.hash === '#camera') {
+    setTimeout(function() { toggleCameraMode(); }, 500);
+}
+</script>
+</body>
+</html>

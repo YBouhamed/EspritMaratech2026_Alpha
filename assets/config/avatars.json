@@ -1,0 +1,38 @@
+{
+  "default_avatar": "default_humanoid",
+  "avatars": {
+    "default_humanoid": {
+      "name": "Default Humanoid Avatar",
+      "model": "avatars/default_humanoid/model.gltf",
+      "skeleton": "humanoid_mixamo",
+      "scale": 1.0,
+      "materials": {
+        "skin": "avatars/default_humanoid/textures/skin.jpg",
+        "clothing": "avatars/default_humanoid/textures/clothing.jpg"
+      },
+      "bones": {
+        "root": "Hips",
+        "spine": ["Spine", "Spine1", "Spine2"],
+        "neck": "Neck",
+        "head": "Head",
+        "left_shoulder": "LeftShoulder",
+        "left_arm": "LeftArm",
+        "left_forearm": "LeftForeArm",
+        "left_hand": "LeftHand",
+        "right_shoulder": "RightShoulder",
+        "right_arm": "RightArm",
+        "right_forearm": "RightForeArm",
+        "right_hand": "RightHand"
+      },
+      "thumbnail": "avatars/default_humanoid/thumbnail.jpg",
+      "description": "Standard humanoid avatar compatible with Mixamo skeleton. Suitable for medical sign language demonstrations.",
+      "default_animations": {
+        "idle": "common/idle.fbx",
+        "transition": "common/transition.fbx"
+      },
+      "quality_preset": "medium",
+      "customizable": false,
+      "customization": {}
+    }
+  }
+}
