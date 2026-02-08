@@ -1255,11 +1255,9 @@ if (colorblindToggle) {
     let colorblindMode = localStorage.getItem('colorblind-mode') === 'true';
 
     // Apply saved preference on load
-    const indicator = document.getElementById('colorblindIndicator');
     if (colorblindMode) {
         document.body.classList.add('colorblind-mode');
         colorblindToggle.classList.add('active');
-        if (indicator) indicator.classList.remove('hidden');
         console.log('Colorblind mode applied from storage');
     }
 
@@ -1271,13 +1269,11 @@ if (colorblindToggle) {
         if (colorblindMode) {
             document.body.classList.add('colorblind-mode');
             colorblindToggle.classList.add('active');
-            if (indicator) indicator.classList.remove('hidden');
             localStorage.setItem('colorblind-mode', 'true');
             console.log('Colorblind mode ACTIVATED - body class added');
         } else {
             document.body.classList.remove('colorblind-mode');
             colorblindToggle.classList.remove('active');
-            if (indicator) indicator.classList.add('hidden');
             localStorage.setItem('colorblind-mode', 'false');
             console.log('Colorblind mode DEACTIVATED - body class removed');
         }
@@ -1300,18 +1296,6 @@ if (typeof I18N !== 'undefined') {
             const newLang = speechLangMap[lang] || 'ar-TN';
             recognition.lang = newLang;
             console.log('Speech recognition updated to:', newLang, 'for language:', lang);
-        }
-        
-        // Update logo position based on language (handled by CSS order property)
-        // RTL languages (ar, tn): logo on right (order: 10)
-        // LTR languages (fr, en): logo on left (order: -1)
-        const logoContainer = document.querySelector('.logo-container');
-        if (logoContainer) {
-            if (lang === 'ar' || lang === 'tn') {
-                logoContainer.style.order = '10';
-            } else {
-                logoContainer.style.order = '-1';
-            }
         }
     };
 }

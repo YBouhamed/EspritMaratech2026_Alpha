@@ -1114,34 +1114,28 @@ textarea::placeholder {
     gap: 8px;
 }
 
-.colorblind-indicator {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.15);
-    padding: 4px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    animation: pulse-indicator 2s ease-in-out infinite;
-}
-
-.colorblind-indicator.hidden {
-    display: none;
-}
-
-@keyframes pulse-indicator {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
 .colorblind-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     background: rgba(255,255,255,0.08);
     border: 1.5px solid rgba(255,255,255,0.25);
     border-radius: 10px;
     padding: 6px 14px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.colorblind-icon {
     font-size: 1.2rem;
+}
+
+.colorblind-text {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 0.3px;
 }
 
 .colorblind-btn:hover {
@@ -1151,26 +1145,54 @@ textarea::placeholder {
 }
 
 .colorblind-btn.active {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    border-color: #fbbf24;
-    color: white;
-    box-shadow: 0 2px 10px rgba(251, 191, 36, 0.4);
+    background: linear-gradient(135deg, #ff6600, #ff8800);
+    border-color: #ff6600;
+    box-shadow: 0 2px 10px rgba(255, 102, 0, 0.4);
+    animation: pulse-colorblind 1.5s ease-in-out infinite;
+}
+
+.colorblind-btn.active .colorblind-text {
+    color: #fff;
+    font-weight: 700;
+}
+
+@keyframes pulse-colorblind {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.9;
+        transform: scale(1.02);
+    }
 }
 
 body.colorblind-mode {
-    filter: saturate(1.8) contrast(1.3) brightness(1.1) hue-rotate(-10deg);
+    filter: saturate(3.5) contrast(1.6) brightness(1.15) hue-rotate(15deg);
 }
 
 body.colorblind-mode .btn-primary {
-    background: linear-gradient(135deg, #5599ff, #2266cc);
+    background: linear-gradient(135deg, #0066ff, #0044cc) !important;
+    border: 2px solid #0066ff;
 }
 
 body.colorblind-mode .btn-mic {
-    background: linear-gradient(135deg, #ff9944, #dd7722);
+    background: linear-gradient(135deg, #ff6600, #cc4400) !important;
+    border: 2px solid #ff6600;
 }
 
 body.colorblind-mode .mode-tab.active {
-    background: linear-gradient(135deg, #5599ff, #3377dd);
+    background: linear-gradient(135deg, #0066ff, #0044cc) !important;
+}
+
+body.colorblind-mode .custom-control-btn.active {
+    background: #0066ff !important;
+    border-color: #0066ff !important;
+}
+
+body.colorblind-mode .custom-control-btn:hover {
+    background: #3388ff !important;
+    border-color: #0066ff !important;
 }
 
 /* Custom Video Controls */
