@@ -17,7 +17,7 @@ const I18N = {
             mode_avatar: 'أفاتار 3D',
             mode_camera: 'إشارات → نص',
             // Input
-            input_label: 'اكتب الكلام هوني',
+            input_label: 'أدخل النص',
             input_placeholder: 'مثال: طبيب، سبيطار، ممرض...',
             btn_translate: 'ترجم',
             btn_mic: 'ميكرو',
@@ -38,12 +38,36 @@ const I18N = {
             btn_play: 'كمّل',
             btn_next: 'إلّي بعد',
             btn_stop: 'أوقف',
+            btn_slow: 'بطيء',
+            btn_replay: 'عاود',
+            btn_normal: 'عادي',
+            btn_custom_stop: 'وقّف',
+            colorblind_mode: 'وضع عمى الألوان',
+            colorblind_active: 'وضع عمى الألوان مفعّل',
+            keyboard_shortcuts: 'اختصارات الكيبورد',
+            kb_translation: 'الترجمة',
+            kb_translate: 'ترجم',
+            kb_microphone: 'ميكرو',
+            kb_clear: 'امسح',
+            kb_video_controls: 'أدوات الفيديو',
+            kb_play_pause: 'تشغيل/إيقاف',
+            kb_previous: 'إلّي قبل',
+            kb_next: 'إلّي بعد',
+            kb_slow: 'بطيء',
+            kb_replay: 'عاود',
+            kb_stop: 'أوقف',
+            kb_normal: 'عادي',
+            kb_interface: 'الواجهة',
+            kb_change_lang: 'غيّر اللغة',
+            kb_brightness: 'الإضاءة',
+            kb_text_size: 'حجم الخط',
+            kb_colorblind: 'وضع عمى الألوان',
             // Instructions
             instructions_title: 'كيفاش تستعمل التطبيق',
             instr_1: 'اكتب الكلام في الخانة',
             instr_2: 'ولّا اضغط على الميكرو واحكي',
             instr_3: 'اضغط "ترجم" باش تشوف الإشارات',
-            instr_4: 'الفيديوهات تتلعب وحدة وحدة',
+            instr_4: 'الأفاتار يعمل الإشارات بلغة الإشارة التونسية',
             instr_5: 'استعمل الأزرار باش تتنقل بين الإشارات',
             note: 'ملاحظة: كان الكلمات إلّي في القاموس الطبي هوما إلّي تترجم.',
             // Footer
@@ -232,11 +256,35 @@ const I18N = {
             btn_play: 'Lecture',
             btn_next: 'Suivant',
             btn_stop: 'Arrêter',
+            btn_slow: 'Ralenti',
+            btn_replay: 'Rejouer',
+            btn_normal: 'Normal',
+            btn_custom_stop: 'Stop',
+            colorblind_mode: 'Mode daltonien',
+            colorblind_active: 'Mode daltonien activé',
+            keyboard_shortcuts: 'Raccourcis clavier',
+            kb_translation: 'Traduction',
+            kb_translate: 'Traduire',
+            kb_microphone: 'Microphone',
+            kb_clear: 'Effacer',
+            kb_video_controls: 'Contrôles vidéo',
+            kb_play_pause: 'Lecture/Pause',
+            kb_previous: 'Précédent',
+            kb_next: 'Suivant',
+            kb_slow: 'Ralenti',
+            kb_replay: 'Rejouer',
+            kb_stop: 'Arrêter',
+            kb_normal: 'Normal',
+            kb_interface: 'Interface',
+            kb_change_lang: 'Changer la langue',
+            kb_brightness: 'Luminosité',
+            kb_text_size: 'Taille texte',
+            kb_colorblind: 'Mode daltonien',
             instructions_title: 'Comment utiliser cette application',
             instr_1: 'Tapez votre phrase dans la zone de texte',
             instr_2: 'Ou cliquez sur le bouton micro et parlez',
             instr_3: 'Cliquez "Traduire" pour voir les signes',
-            instr_4: 'Les vidéos se jouent automatiquement',
+            instr_4: 'L’avatar fera les gestes en langue des signes tunisienne',
             instr_5: 'Utilisez les boutons pour naviguer entre les signes',
             note: 'Note : Seuls les mots du dictionnaire médical seront traduits.',
             footer: '© 2026 - Dictionnaire Médical LST - Projet Hackathon',
@@ -422,11 +470,35 @@ const I18N = {
             btn_play: 'تشغيل',
             btn_next: 'التالي',
             btn_stop: 'إيقاف',
+            btn_slow: 'بطيء',
+            btn_replay: 'إعادة',
+            btn_normal: 'عادي',
+            btn_custom_stop: 'إيقاف',
+            colorblind_mode: 'وضع عمى الألوان',
+            colorblind_active: 'وضع عمى الألوان مفعّل',
+            keyboard_shortcuts: 'اختصارات لوحة المفاتيح',
+            kb_translation: 'الترجمة',
+            kb_translate: 'ترجمة',
+            kb_microphone: 'ميكروفون',
+            kb_clear: 'مسح',
+            kb_video_controls: 'عناصر التحكم بالفيديو',
+            kb_play_pause: 'تشغيل/إيقاف مؤقت',
+            kb_previous: 'السابق',
+            kb_next: 'التالي',
+            kb_slow: 'بطيء',
+            kb_replay: 'إعادة',
+            kb_stop: 'إيقاف',
+            kb_normal: 'عادي',
+            kb_interface: 'الواجهة',
+            kb_change_lang: 'تغيير اللغة',
+            kb_brightness: 'السطوع',
+            kb_text_size: 'حجم الخط',
+            kb_colorblind: 'وضع عمى الألوان',
             instructions_title: 'كيفية استخدام التطبيق',
             instr_1: 'اكتب الجملة في حقل النص',
             instr_2: 'أو اضغط على زر الميكروفون وتحدث',
             instr_3: 'اضغط "ترجم" لرؤية الإشارات',
-            instr_4: 'تتشغل الفيديوهات تلقائياً',
+            instr_4: 'سيقوم الأفاتار بعمل الإشارات بلغة الإشارة التونسية',
             instr_5: 'استخدم الأزرار للتنقل بين الإشارات',
             note: 'ملاحظة: فقط الكلمات الموجودة في القاموس الطبي سيتم ترجمتها.',
             footer: '© 2026 - القاموس الطبي للغة الإشارة التونسية - مشروع هاكاثون',
@@ -583,6 +655,95 @@ const I18N = {
             guide_four: '4️⃣ 4 أصابع → <strong>مستشفى</strong>',
             guide_five: '🖐️ 5 أصابع → <strong>خمسة / قف</strong>',
             guide_gun: '👉 مسدس → <strong>لقاح</strong>',
+        },
+        en: {
+            lang_name: 'English',
+            dir: 'ltr',
+            title: '🤟 Tunisian Sign Language Translator',
+            subtitle: 'Translate text or voice to Tunisian Sign Language',
+            mode_video: 'Video Mode',
+            mode_avatar: '3D Avatar',
+            mode_camera: 'Signs → Text',
+            input_label: 'Enter your text',
+            input_placeholder: 'Example: hello, doctor, nurse...',
+            btn_translate: 'Translate',
+            btn_mic: 'Microphone',
+            btn_mic_stop: 'Stop recording',
+            btn_clear: 'Clear',
+            mode_text: 'Type',
+            mode_voice: 'Speak',
+            btn_show_sign: 'Show sign',
+            btn_start_recording: 'Start recording',
+            voice_ready: 'Ready to listen',
+            voice_hint: 'Press the button and say the word',
+            video_title: 'Sign display',
+            video_placeholder: 'Videos will appear here',
+            queue_title: 'Playback queue',
+            btn_prev: 'Previous',
+            btn_pause: 'Pause',
+            btn_play: 'Play',
+            btn_next: 'Next',
+            btn_stop: 'Stop',
+            btn_slow: 'Slow',
+            btn_replay: 'Replay',
+            btn_normal: 'Normal',
+            btn_custom_stop: 'Stop',
+            colorblind_mode: 'Color Blind Mode',
+            colorblind_active: 'Color Blind Mode Active',
+            keyboard_shortcuts: 'Keyboard Shortcuts',
+            kb_translation: 'Translation',
+            kb_translate: 'Translate',
+            kb_microphone: 'Microphone',
+            kb_clear: 'Clear',
+            kb_video_controls: 'Video Controls',
+            kb_play_pause: 'Play/Pause',
+            kb_previous: 'Previous',
+            kb_next: 'Next',
+            kb_slow: 'Slow',
+            kb_replay: 'Replay',
+            kb_stop: 'Stop',
+            kb_normal: 'Normal',
+            kb_interface: 'Interface',
+            kb_change_lang: 'Change language',
+            kb_brightness: 'Brightness',
+            kb_text_size: 'Text size',
+            kb_colorblind: 'Color blind mode',
+            instructions_title: 'How to use this app',
+            instr_1: 'Type your sentence in the text box',
+            instr_2: 'Or click the microphone button and speak',
+            instr_3: 'Click "Translate" to see the signs',
+            instr_4: 'The avatar will perform the signs in Tunisian Sign Language',
+            instr_5: 'Use the buttons to navigate between signs',
+            note: 'Note: Only words in the medical dictionary will be translated.',
+            footer: '© 2026 - Medical Dictionary in Tunisian Sign Language - Hackathon Project',
+            brightness: 'Brightness',
+            text_size: 'Text size',
+            words_found: 'Words found',
+            words_missing: 'Words not found',
+            translating: 'Translating...',
+            no_sign: 'No signs found',
+            end_translation: 'Translation complete',
+            speak_now: 'Speak now...',
+            enter_text: 'Please enter text to translate',
+            text_recognized: 'Text recognized',
+            no_speech: 'No speech detected. Try again.',
+            mic_not_accessible: 'Microphone not accessible.',
+            mic_denied: 'Microphone permission denied.',
+            mic_error: 'Microphone error',
+            server_error: 'Server error',
+            speech_not_supported: 'Speech recognition not available',
+            video_error: 'Video playback error',
+            signs_found: 'sign(s) found',
+            colorblind_mode: 'Colorblind Mode',
+            replay: 'Replay',
+            slow_speed: 'Slow (0.5x)',
+            normal_speed: 'Normal (1x)',
+            custom_stop: 'Stop',
+            click_to_play: 'Click to play this word',
+            keyboard_shortcuts: 'Keyboard Shortcuts',
+            close: 'Close',
+            instructions_guide: 'Instructions Guide',
+            phrase: 'phrase'
         }
     },
 
@@ -595,6 +756,14 @@ const I18N = {
         this.currentLang = lang;
         localStorage.setItem('lst-lang', lang);
         this.applyLanguage(lang);
+        
+        // Trigger queue and word info update if functions exist
+        if (typeof updateQueueDisplay === 'function') {
+            updateQueueDisplay();
+        }
+        if (typeof showWordInfo === 'function' && !document.getElementById('wordInfo').classList.contains('hidden')) {
+            showWordInfo();
+        }
     },
 
     applyLanguage(lang) {
@@ -604,6 +773,11 @@ const I18N = {
         // Update HTML direction
         document.documentElement.lang = (lang === 'tn') ? 'ar' : lang;
         document.documentElement.dir = t.dir;
+
+        // Update speech recognition language if available
+        if (typeof updateRecognitionLanguage === 'function') {
+            updateRecognitionLanguage();
+        }
 
         // Update all [data-i18n] text content
         document.querySelectorAll('[data-i18n]').forEach(el => {

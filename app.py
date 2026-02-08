@@ -1,13 +1,12 @@
 """
 Tunisian Sign Language (LST) Translation Web Application
-Backend Flask server that translates text to LST videos + 3D Avatar
+Backend Flask server that translates text/voice to LST videos
 
 This application:
 - Scans the video database on startup
 - Receives text input from frontend
 - Processes and matches words to video files
 - Returns list of videos to play sequentially
-- Serves 3D avatar model and animations via Three.js
 """
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -18,15 +17,103 @@ import json
 
 app = Flask(__name__)
 
-# Path to assets (3D models + animations)
-ASSETS_BASE_PATH = os.path.join(os.path.dirname(__file__), 'assets')
-
 # Path to the video database
-VIDEO_BASE_PATH = r"c:\Users\bouha\Downloads\vids"
+VIDEO_BASE_PATH = r"c:\Users\bouha\Downloads\vidss"
 
 # Global dictionary to store video mappings
 # Key: normalized word, Value: relative path to video file
 video_database = {}
+
+# French verb conjugation mapping - maps conjugated forms to base form (infinitive)
+VERB_CONJUGATIONS = {
+    # Aller (to go)
+    'va': 'aller', 'vas': 'aller', 'vais': 'aller', 'allons': 'aller',
+    'allez': 'aller', 'vont': 'aller', 'allait': 'aller', 'allais': 'aller',
+    'allions': 'aller', 'alliez': 'aller', 'allaient': 'aller',
+    'irai': 'aller', 'iras': 'aller', 'ira': 'aller', 'irons': 'aller',
+    'irez': 'aller', 'iront': 'aller', 'allé': 'aller', 'allée': 'aller',
+    'allés': 'aller', 'allées': 'aller', 'aille': 'aller', 'ailles': 'aller',
+    'aillent': 'aller',
+    
+    # Faire (to do/make)
+    'fais': 'faire', 'fait': 'faire', 'faisons': 'faire', 'faites': 'faire',
+    'font': 'faire', 'faisait': 'faire', 'faisais': 'faire', 'faisions': 'faire',
+    'faisiez': 'faire', 'faisaient': 'faire', 'ferai': 'faire', 'feras': 'faire',
+    'fera': 'faire', 'ferons': 'faire', 'ferez': 'faire', 'feront': 'faire',
+    'fasse': 'faire', 'fasses': 'faire', 'fassent': 'faire',
+    
+    # Vouloir (to want)
+    'veux': 'vouloir', 'veut': 'vouloir', 'voulons': 'vouloir', 'voulez': 'vouloir',
+    'veulent': 'vouloir', 'voulait': 'vouloir', 'voulais': 'vouloir', 'voulions': 'vouloir',
+    'vouliez': 'vouloir', 'voulaient': 'vouloir', 'voudrai': 'vouloir', 'voudras': 'vouloir',
+    'voudra': 'vouloir', 'voudrons': 'vouloir', 'voudrez': 'vouloir', 'voudront': 'vouloir',
+    'veuille': 'vouloir', 'veuilles': 'vouloir', 'veuillent': 'vouloir', 'voulu': 'vouloir'
+}
+
+# Plural to singular mapping
+PLURAL_TO_SINGULAR = {
+    'fièvres': 'fièvre', 'fievres': 'fièvre', 'allergies': 'allergie',
+    'dentistes': 'dentiste', 'laboratoires': 'laboratoire', 'visages': 'visage',
+    'docteurs': 'docteur', 'médecins': 'médecin', 'infirmiers': 'infirmier',
+    'infirmières': 'infirmier', 'hopitaux': 'hopital', 'hôpitaux': 'hopital',
+    'pharmacies': 'pharmacie', 'radios': 'radio', 'cerveaux': 'cerveau',
+    'yeux': 'oeil', 'mains': 'main', 'pieds': 'pied', 'bras': 'bras',
+    'jambes': 'jambe', 'chevaux': 'cheval'
+}
+
+# French synonyms mapping - maps synonyms to standard word
+FRENCH_SYNONYMS = {
+    # Greetings (map to bonjour)
+    'salut': 'bonjour', 'coucou': 'bonjour', 'bonsoir': 'bonjour',
+    'bonne journée': 'bonjour', 'bonne soirée': 'bonjour', 'bon matin': 'bonjour',
+    'bienvenue': 'bonjour', 'bjr': 'bonjour', 'slt': 'bonjour', 'cc': 'bonjour',
+    'hello': 'bonjour', 'hi': 'bonjour', 'hey': 'bonjour'
+}
+
+
+def lemmatize_word(word):
+    """
+    Reduce a word to its base form (lemmatization).
+    Handles: synonyms, verb conjugations, plurals, and common patterns.
+    
+    Args:
+        word (str): Word to lemmatize (already lowercase and normalized)
+    
+    Returns:
+        str: Base form of the word
+    """
+    # Check French synonyms first (e.g., salut → bonjour)
+    if word in FRENCH_SYNONYMS:
+        return FRENCH_SYNONYMS[word]
+    
+    # Check verb conjugations (exact match)
+    if word in VERB_CONJUGATIONS:
+        return VERB_CONJUGATIONS[word]
+    
+    # Check plural to singular (exact match)
+    if word in PLURAL_TO_SINGULAR:
+        return PLURAL_TO_SINGULAR[word]
+    
+    # Check common plural patterns
+    # -aux → -al (chevaux → cheval, hôpitaux → hopital)
+    if word.endswith('aux') and len(word) > 4:
+        return word[:-3] + 'al'
+    
+    # -s plural (most common) - but avoid removing 's' from words that naturally end in 's'
+    if word.endswith('s') and len(word) > 2:
+        singular = word[:-1]
+        # Don't remove 's' from words that end in 'ss' or single letter + s
+        if not singular.endswith('s') and len(singular) > 1:
+            return singular
+    
+    # -x plural (e.g., yeux, but some are special cases already handled)
+    if word.endswith('x') and len(word) > 2:
+        singular = word[:-1]
+        if len(singular) > 1:
+            return singular
+    
+    # Return as-is if no transformation found
+    return word
 
 
 def normalize_text(text):
@@ -35,6 +122,7 @@ def normalize_text(text):
     - Converting to lowercase
     - Removing accents
     - Removing punctuation
+    - Lemmatizing each word
     
     Args:
         text (str): Input text to normalize
@@ -51,10 +139,14 @@ def normalize_text(text):
         if unicodedata.category(char) != 'Mn'
     )
     
-    # Remove punctuation
-    text = text.translate(str.maketrans('', '', string.punctuation))
+    # Remove punctuation - replace with spaces to preserve word boundaries
+    text = text.translate(str.maketrans(string.punctuation, ' ' * len(string.punctuation)))
     
-    return text.strip()
+    # Split into words and lemmatize each one
+    words = text.split()
+    lemmatized_words = [lemmatize_word(word) for word in words if word]
+    
+    return ' '.join(lemmatized_words)
 
 
 def load_video_database():
@@ -149,6 +241,18 @@ def text_to_videos(text):
 def index():
     """Serve the main HTML page"""
     return render_template('index.html')
+
+
+@app.route('/test')
+def test_page():
+    """Serve the test page"""
+    return render_template('test.html')
+
+
+@app.route('/logo.mp4')
+def serve_logo():
+    """Serve the logo video file"""
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'logo.mp4')
 
 
 @app.route('/videos/<path:filename>')
@@ -254,155 +358,13 @@ def stats():
 
 
 # =============================================
-# 3D AVATAR SYSTEM ENDPOINTS
+# CAMERA/SIGNS TO TEXT MODE
 # =============================================
 
-@app.route('/avatar')
-def avatar_page():
-    """Serve the 3D avatar translation page"""
-    return render_template('avatar.html')
-
-
-@app.route('/assets/<path:filename>')
-def serve_asset(filename):
-    """Serve 3D assets (models, animations, configs)"""
-    return send_from_directory(ASSETS_BASE_PATH, filename)
-
-
-@app.route('/api/avatar/config')
-def avatar_config():
-    """
-    Return avatar configuration for the Three.js renderer.
-    Michelle is a realistic human female avatar with Mixamo skeleton.
-    """
-    config = {
-        'name': 'Michelle - Human Avatar',
-        'model_url': '/assets/avatars/default_humanoid/Michelle.glb',
-        'scale': 1.0,  # Michelle is already in correct units
-        'position': [0, 0, 0],
-        'has_built_in_animations': False,  # Relies on pose tracking from videos
-        'skeleton_type': 'mixamo',
-        'supports_pose_tracking': True,
-        'supports_hand_tracking': True,
-        'supports_facial_expressions': False,
-        'bone_prefix': 'mixamorig',  # Mixamo standard bone naming
-        'animation_mapping': {}  # Pure pose tracking, no built-in animations needed
-    }
-    return jsonify(config)
-
-
-@app.route('/api/avatar/translate', methods=['POST'])
-def avatar_translate():
-    """
-    Translate text to a sequence of 3D avatar animations.
-    Uses RobotExpressive's built-in animations as a demo.
-    
-    Returns:
-        {
-            "success": bool,
-            "animations": [{"sign_id": "...", "animation_name": "...", "word": "..."}],
-            "matched_words": [...],
-            "missing_words": [...]
-        }
-    """
-    try:
-        data = request.get_json()
-        if not data or 'text' not in data:
-            return jsonify({'success': False, 'message': 'No text provided', 'animations': []}), 400
-        
-        text = data['text'].strip()
-        if not text:
-            return jsonify({'success': False, 'message': 'Empty text', 'animations': []}), 400
-        
-        # Normalize and split
-        normalized = normalize_text(text)
-        words = normalized.split()
-        
-        # Animation mapping from config
-        animation_map = {
-            'bonjour': 'Wave', 'salut': 'Wave', 'coucou': 'Wave',
-            'oui': 'ThumbsUp', 'daccord': 'ThumbsUp', 'bien': 'ThumbsUp',
-            'merci': 'ThumbsUp', 'bravo': 'ThumbsUp',
-            'non': 'No', 'pas': 'No', 'jamais': 'No',
-            'content': 'Happy Idle', 'heureux': 'Happy Idle', 'joie': 'Happy Idle',
-            'triste': 'Sad Idle', 'malheureux': 'Sad Idle', 'mal': 'Sad Idle',
-            'danser': 'Dance', 'danse': 'Dance', 'fete': 'Dance',
-            'courir': 'Running', 'vite': 'Running', 'urgence': 'Running',
-            'marcher': 'Walking', 'aller': 'Walking', 'venir': 'Walking',
-            'sauter': 'Jump', 'saut': 'Jump',
-            'mourir': 'Death', 'mort': 'Death',
-            'frapper': 'Punch', 'battre': 'Punch',
-        }
-        
-        # Also check video database words → map to closest animation
-        medical_animation_map = {}
-        for word in video_database.keys():
-            # Map medical terms to gestures for demo purposes
-            if word in ['medecin', 'docteur', 'infirmier', 'infirmiere', 'sage-femme']:
-                medical_animation_map[word] = 'Wave'
-            elif word in ['hopital', 'clinique', 'pharmacie', 'laboratoire']:
-                medical_animation_map[word] = 'Walking'
-            elif word in ['douleur', 'malade', 'fievre', 'fatigue']:
-                medical_animation_map[word] = 'Sad Idle'
-            elif word in ['guerison', 'sante', 'gueri']:
-                medical_animation_map[word] = 'Happy Idle'
-            else:
-                medical_animation_map[word] = 'Idle'
-        
-        # Combine both maps
-        full_map = {**medical_animation_map, **animation_map}
-        
-        animations = []
-        matched = []
-        missing = []
-        
-        for word in words:
-            if word in full_map:
-                animations.append({
-                    'sign_id': word,
-                    'animation_name': full_map[word],
-                    'word': word,
-                    'transition_in': 0.4
-                })
-                matched.append(word)
-            elif word in video_database:
-                # Word exists in video DB but not in animation map
-                animations.append({
-                    'sign_id': word,
-                    'animation_name': 'Idle',
-                    'word': word,
-                    'transition_in': 0.4
-                })
-                matched.append(word)
-            else:
-                missing.append(word)
-        
-        print(f"[Avatar] Input: {text}")
-        print(f"[Avatar] Matched: {matched}")
-        print(f"[Avatar] Missing: {missing}")
-        
-        return jsonify({
-            'success': len(animations) > 0,
-            'message': f'{len(animations)} animation(s) trouvée(s)' if animations else 'Aucune animation trouvée',
-            'animations': animations,
-            'matched_words': matched,
-            'missing_words': missing
-        })
-    
-    except Exception as e:
-        print(f"Error in /api/avatar/translate: {str(e)}")
-        return jsonify({'success': False, 'message': str(e), 'animations': []}), 500
-
-
-@app.route('/api/avatar/animations')
-def list_avatar_animations():
-    """List all available built-in animations for the robot model"""
-    animations = [
-        'Dance', 'Death', 'Happy Idle', 'Idle', 'Jump',
-        'No', 'Punch', 'Running', 'Sad Idle', 'Standing',
-        'ThumbsUp', 'Walking', 'Wave', 'Yes'
-    ]
-    return jsonify({'animations': animations})
+@app.route('/avatarr')
+def avatarr_page():
+    """Serve the signs-to-text translation page"""
+    return render_template('avatarr.html')
 
 
 if __name__ == '__main__':

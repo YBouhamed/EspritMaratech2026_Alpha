@@ -10,6 +10,11 @@
     <!-- Utility Bar -->
     <div class="utility-bar">
         <div class="utility-inner">
+            <div class="logo-container">
+                <video class="logo-video" autoplay muted loop playsinline>
+                    <source src="/logo.mp4" type="video/mp4">
+                </video>
+            </div>
             <div class="brightness-group">
                 <span class="brightness-label" data-i18n="brightness">الإضاءة</span>
                 <span class="bri-icon">🌙</span>
@@ -27,6 +32,13 @@
                 <button class="lang-btn active" data-lang="tn">دارجة</button>
                 <button class="lang-btn" data-lang="fr">FR</button>
                 <button class="lang-btn" data-lang="ar">عربي</button>
+                <button class="lang-btn" data-lang="en">EN</button>
+            </div>
+            <div class="colorblind-group">
+                <button id="colorblindToggle" class="colorblind-btn" title="Colorblind Mode">
+                    <span>👁️</span>
+                </button>
+                <span id="colorblindIndicator" class="colorblind-indicator hidden" data-i18n="colorblind_active">وضع عمى الألوان مفعّل</span>
             </div>
         </div>
     </div>
@@ -38,29 +50,13 @@
             <p class="header-sub" data-i18n="subtitle">ترجم من النص ولّا الصوت للغة الإشارة التونسية</p>
         </header>
 
-        <!-- Navigation -->
-        <nav class="nav-bar-unified">
-            <a href="/" class="nav-link-unified active">
-                <span>📹</span>
-                <span data-i18n="mode_video">وضع الفيديو</span>
-            </a>
-            <a href="/avatar" class="nav-link-unified">
-                <span>🤖</span>
-                <span data-i18n="mode_avatar">أفاتار 3D</span>
-            </a>
-            <a href="/avatar#camera" class="nav-link-unified">
-                <span>📷</span>
-                <span data-i18n="mode_camera">إشارات → نص</span>
-            </a>
-        </nav>
-
         <!-- Main Content -->
         <main class="main-grid">
             <!-- Input Panel -->
             <section class="panel input-panel">
                 <div class="panel-head">
                     <span class="badge-icon">💬</span>
-                    <h2 data-i18n="input_label">أدخل الكلمة</h2>
+                    <h2 data-i18n="input_label">أدخل النص</h2>
                 </div>
                 
                 <!-- Input Mode Selector -->
@@ -118,14 +114,34 @@
             <!-- Video Panel -->
             <section class="panel video-panel">
                 <div class="panel-head">
-                    <span class="badge-label">📹 VIDEO</span>
+                    <span class="badge-icon">📹</span>
                     <h2 data-i18n="video_title">عرض الإشارات</h2>
                 </div>
+                
+                <!-- Custom Video Controls -->
+                <div class="custom-video-controls hidden" id="customVideoControls">
+                    <button id="slowBtn" class="custom-control-btn" title="Slow">
+                        <span class="btn-emoji">🐌</span>
+                        <span class="btn-label" data-i18n="btn_slow">Ralenti</span>
+                    </button>
+                    <button id="replayBtn" class="custom-control-btn" title="Replay">
+                        <span class="btn-emoji">🔄</span>
+                        <span class="btn-label" data-i18n="btn_replay">Rejouer</span>
+                    </button>
+                    <button id="normalSpeedBtn" class="custom-control-btn active" title="Normal">
+                        <span class="btn-emoji">▶️</span>
+                        <span class="btn-label" data-i18n="btn_normal">Normal</span>
+                    </button>
+                    <button id="customStopBtn" class="custom-control-btn" title="Stop">
+                        <span class="btn-emoji">⏹</span>
+                        <span class="btn-label" data-i18n="btn_custom_stop">Stop</span>
+                    </button>
+                </div>
+                
                 <div class="video-wrapper">
                     <video 
                         id="videoPlayer" 
-                        controls 
-                        controlsList="nodownload"
+                        muted
                         class="hidden"
                     >
                         Votre navigateur ne supporte pas la lecture vidéo.
@@ -163,21 +179,80 @@
         </main>
 
         <!-- Instructions -->
-        <section class="instructions-box">
-            <details>
-                <summary>ℹ️ <span data-i18n="instructions_title">كيفاش تستعمل التطبيق</span></summary>
-                <ol>
-                    <li data-i18n="instr_1">اكتب الكلام في الخانة</li>
-                    <li data-i18n="instr_2">ولّا اضغط على الميكرو واحكي</li>
-                    <li data-i18n="instr_3">اضغط "ترجم" باش تشوف الإشارات</li>
-                    <li data-i18n="instr_4">الفيديوهات تتلعب وحدة وحدة</li>
-                    <li data-i18n="instr_5">استعمل الأزرار باش تتنقل بين الإشارات</li>
-                </ol>
-                <p class="note-text" data-i18n="note">
-                    ملاحظة: كان الكلمات إلّي في القاموس الطبي هوما إلّي تترجم.
-                </p>
-            </details>
+        <section class="instructions-box" style="display:none;">
+            <!-- Hidden - replaced by modal -->
         </section>
+
+        <!-- Instructions Modal (triggered by help button) -->
+        <div id="instructionsModal" class="modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" onclick="document.getElementById('instructionsModal').classList.add('hidden')">×</button>
+                <h2>ℹ️ <span data-i18n="instructions_guide">Instructions Guide</span></h2>
+                <div class="instruction-steps">
+                    <div class="instruction-step">
+                        <span class="step-number">1</span>
+                        <p data-i18n="instr_1">Type your sentence in the text box</p>
+                    </div>
+                    <div class="instruction-step">
+                        <span class="step-number">2</span>
+                        <p data-i18n="instr_2">Or click the microphone button and speak</p>
+                    </div>
+                    <div class="instruction-step">
+                        <span class="step-number">3</span>
+                        <p data-i18n="instr_3">Click "Translate" to see the signs</p>
+                    </div>
+                    <div class="instruction-step">
+                        <span class="step-number">4</span>
+                        <p data-i18n="instr_4">Videos play automatically</p>
+                    </div>
+                    <div class="instruction-step">
+                        <span class="step-number">5</span>
+                        <p data-i18n="instr_5">Use the buttons to navigate between signs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard Shortcuts Modal -->
+        <div id="keyboardModal" class="modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" onclick="document.getElementById('keyboardModal').classList.add('hidden')">×</button>
+                <h2>⌨️ <span data-i18n="keyboard_shortcuts">Keyboard Shortcuts</span></h2>
+                <div class="keyboard-guide">
+                    <div class="kb-section">
+                        <h3 data-i18n="kb_translation">Translation</h3>
+                        <div class="kb-item"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> <span data-i18n="kb_translate">Translate</span></div>
+                        <div class="kb-item"><kbd>Ctrl</kbd> + <kbd>M</kbd> <span data-i18n="kb_microphone">Microphone</span></div>
+                        <div class="kb-item"><kbd>Esc</kbd> <span data-i18n="kb_clear">Clear</span></div>
+                    </div>
+                    <div class="kb-section">
+                        <h3 data-i18n="kb_video_controls">Video Controls</h3>
+                        <div class="kb-item"><kbd>Space</kbd> <span data-i18n="kb_play_pause">Play/Pause</span></div>
+                        <div class="kb-item"><kbd>←</kbd> <span data-i18n="kb_previous">Previous</span></div>
+                        <div class="kb-item"><kbd>→</kbd> <span data-i18n="kb_next">Next</span></div>
+                        <div class="kb-item"><kbd>S</kbd> <span data-i18n="kb_slow">Slow speed</span></div>
+                        <div class="kb-item"><kbd>R</kbd> <span data-i18n="kb_replay">Replay</span></div>
+                        <div class="kb-item"><kbd>T</kbd> <span data-i18n="kb_stop">Stop</span></div>
+                        <div class="kb-item"><kbd>N</kbd> <span data-i18n="kb_normal">Normal speed</span></div>
+                    </div>
+                    <div class="kb-section">
+                        <h3 data-i18n="kb_interface">Interface</h3>
+                        <div class="kb-item"><kbd>Ctrl</kbd> + <kbd>← / →</kbd> <span data-i18n="kb_change_lang">Change language</span></div>
+                        <div class="kb-item"><kbd>Ctrl</kbd> + <kbd>↑ / ↓</kbd> <span data-i18n="kb_brightness">Brightness</span></div>
+                        <div class="kb-item"><kbd>Ctrl</kbd> + <kbd>+ / -</kbd> <span data-i18n="kb_text_size">Text size</span></div>
+                        <div class="kb-item"><kbd>C</kbd> <span data-i18n="kb_colorblind">Colorblind mode</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Help Buttons -->
+        <button class="instructions-help-btn" onclick="document.getElementById('instructionsModal').classList.remove('hidden')">
+            ℹ️
+        </button>
+        <button class="keyboard-help-btn" onclick="document.getElementById('keyboardModal').classList.remove('hidden')">
+            ⌨️
+        </button>
 
         <!-- Footer -->
         <footer class="app-footer">

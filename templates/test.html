@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TEST VIDEO LST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background: #007bff;
+            color: white;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background: #e9ecef;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🎬 TEST VIDÉO LST</h1>
+    
+    <div class="test-box">
+        <h2>Test 1: Vidéo par défaut (nomove.mp4)</h2>
+        <video id="testVideo1" controls muted autoplay loop>
+            <source src="/videos/nomove.mp4" type="video/mp4">
+        </video>
+        <div id="status1" class="status">Chargement...</div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 2: Vidéo bonjour</h2>
+        <button onclick="playBonjour()">▶️ Jouer BONJOUR</button>
+        <video id="testVideo2" controls muted></video>
+        <div id="status2" class="status">Prêt</div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 3: API Translation</h2>
+        <input type="text" id="testText" value="bonjour" style="padding: 8px; font-size: 16px; width: 300px;">
+        <button onclick="testTranslate()">🔍 Tester Traduction</button>
+        <div id="status3" class="status">Prêt</div>
+        <pre id="apiResult" style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;"></pre>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 4: Scripts Chargés</h2>
+        <div id="scriptsStatus"></div>
+    </div>
+
+    <script>
+        // Test 1: Video par défaut
+        const vid1 = document.getElementById('testVideo1');
+        const status1 = document.getElementById('status1');
+        
+        vid1.addEventListener('loadeddata', () => {
+            status1.className = 'status success';
+            status1.textContent = '✅ Vidéo nomove.mp4 chargée ! Durée: ' + vid1.duration.toFixed(1) + 's';
+        });
+        
+        vid1.addEventListener('error', (e) => {
+            status1.className = 'status error';
+            status1.textContent = '❌ ERREUR chargement nomove.mp4: ' + e.message;
+        });
+
+        // Test 2: Bouton bonjour
+        function playBonjour() {
+            const vid2 = document.getElementById('testVideo2');
+            const status2 = document.getElementById('status2');
+            
+            status2.textContent = 'Chargement bonjour.mp4...';
+            vid2.src = '/videos/bonjour.mp4';
+            
+            vid2.addEventListener('loadeddata', () => {
+                status2.className = 'status success';
+                status2.textContent = '✅ Bonjour.mp4 chargé ! Lecture...';
+                vid2.play();
+            }, { once: true });
+            
+            vid2.addEventListener('error', () => {
+                status2.className = 'status error';
+                status2.textContent = '❌ ERREUR bonjour.mp4';
+            }, { once: true });
+        }
+
+        // Test 3: API Translation
+        async function testTranslate() {
+            const status3 = document.getElementById('status3');
+            const apiResult = document.getElementById('apiResult');
+            const text = document.getElementById('testText').value;
+            
+            status3.textContent = 'Envoi requête...';
+            apiResult.textContent = '';
+            
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                
+                status3.className = 'status success';
+                status3.textContent = '✅ Réponse API reçue';
+                apiResult.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.success && data.videos.length > 0) {
+                    alert('✅ Traduction OK ! Vidéos: ' + data.videos.join(', '));
+                }
+            } catch (error) {
+                status3.className = 'status error';
+                status3.textContent = '❌ ERREUR: ' + error.message;
+                apiResult.textContent = error.stack;
+            }
+        }
+
+        // Test 4: Scripts
+        const scriptsDiv = document.getElementById('scriptsStatus');
+        let scriptsHTML = '<ul>';
+        
+        // Check if scripts would normally be loaded
+        scriptsHTML += '<li>i18n.js: <code>/static/i18n.js</code></li>';
+        scriptsHTML += '<li>script.js: <code>/static/script.js</code></li>';
+        scriptsHTML += '<li>style.css: <code>/static/style.css</code></li>';
+        scriptsHTML += '</ul>';
+        
+        scriptsHTML += '<p><strong>Pour tester dans la page principale:</strong></p>';
+        scriptsHTML += '<p>Ouvrez <a href="/" target="_blank">INDEX PRINCIPAL</a> et appuyez sur F12 pour voir la console</p>';
+        
+        scriptsDiv.innerHTML = scriptsHTML;
+
+        console.log('✅ Test page loaded successfully');
+    </script>
+</body>
+</html>
